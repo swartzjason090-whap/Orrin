@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#161B36">
+<meta name="color-scheme" content="dark">
+<title>Orrin</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#161B36;        /* page */
+  --deep:#1F2647;       /* surfaces */
+  --raised:#2A3260;     /* raised controls */
+  --line:#39427A;
+  --text:#ECEAF6;
+  --muted:#A3A6C8;
+  --lamp:#F2B65C;       /* speaking / primary */
+  --lamp-ink:#2A1C05;
+  --lilac:#B4A8F5;      /* listening */
+  --danger:#F08A8A;
+  --ok:#8FD6B4;
+  --serif:"Fraunces", Georgia, serif;
+  --sans:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r-s:10px; --r-m:16px; --r-l:28px;
+  --nav-h:64px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font:16px/1.5 var(--sans)}
+body{overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+#app{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+.view{flex:1;min-height:0;display:none;flex-direction:column}
+.view.on{display:flex}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:10px;padding:10px 16px;min-height:56px}
+.top h1{font:600 22px/1 var(--serif);margin:0;letter-spacing:.2px}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);background:var(--deep);padding:6px 12px;border-radius:99px;border:1px solid var(--line);max-width:58%}
+.status span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.offline .dot{background:var(--danger)}
+#offlineBar{display:none;cursor:pointer;background:#4A2F3A;color:#FFDCDC;font-size:14px;padding:8px 16px}
+.offline #offlineBar{display:block}
+
+/* home */
+#home{padding:8px 20px 20px;justify-content:center}
+.greet{font:400 34px/1.15 var(--serif);margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 28px}
+.modes{display:grid;gap:12px}
+.mode{display:flex;align-items:center;gap:16px;text-align:left;background:var(--deep);border:1px solid var(--line);border-radius:var(--r-m);padding:18px;min-height:84px}
+.mode:active{background:var(--raised)}
+.mode svg{flex:none;width:40px;height:40px}
+.mode b{display:block;font:600 19px/1.2 var(--serif)}
+.mode small{color:var(--muted);font-size:14px}
+
+/* mode switch */
+.seg{display:flex;background:var(--deep);border:1px solid var(--line);border-radius:99px;padding:4px;margin:0 16px 8px}
+.seg button{flex:1;border:0;background:none;padding:10px 0;border-radius:99px;font-weight:600;font-size:14px;color:var(--muted);min-height:44px}
+.seg button.on{background:var(--raised);color:var(--text)}
+
+/* panes inside talk */
+.pane{flex:1;min-height:0;display:none;flex-direction:column}
+.pane.on{display:flex}
+
+/* chat */
+#msgs{flex:1;padding:8px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:86%;padding:10px 14px;border-radius:18px;word-wrap:break-word;white-space:normal}
+.msg.user{align-self:flex-end;background:var(--raised);border-bottom-right-radius:6px}
+.msg.ai{align-self:flex-start;background:var(--deep);border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg.ai p{margin:0 0 8px}.msg.ai p:last-child{margin:0}
+.msg code{background:#0f1430;padding:1px 5px;border-radius:5px;font-size:.92em}
+.msg pre{background:#0f1430;padding:10px;border-radius:10px;overflow-x:auto;white-space:pre}
+.msg ul{margin:4px 0;padding-left:20px}
+.msg.sys{align-self:center;background:none;color:var(--muted);font-size:13px;text-align:center;padding:2px 8px}
+.msg .meta{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+.chip{display:inline-block;font-size:12px;background:#203A35;color:var(--ok);border-radius:99px;padding:2px 10px;margin:6px 6px 0 0}
+.typing{display:inline-flex;gap:4px}.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,100%{opacity:.3}50%{opacity:1}}
+.empty{margin:auto;text-align:center;color:var(--muted);max-width:300px;padding:20px}
+.empty b{display:block;color:var(--text);font:400 22px/1.3 var(--serif);margin-bottom:6px}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.sugg button{background:var(--deep);border:1px solid var(--line);border-radius:99px;padding:8px 14px;font-size:14px}
+
+/* composer */
+.composer{display:flex;align-items:flex-end;gap:8px;padding:8px 12px 10px;border-top:1px solid var(--line);background:var(--ink)}
+.composer textarea{flex:1;resize:none;max-height:120px;min-height:46px;background:var(--deep);border:1px solid var(--line);border-radius:22px;padding:11px 16px;line-height:1.35}
+.icon{width:46px;height:46px;flex:none;border-radius:50%;border:1px solid var(--line);background:var(--deep);display:grid;place-items:center}
+.icon svg{width:22px;height:22px}
+.icon.primary{background:var(--lamp);border-color:var(--lamp);color:var(--lamp-ink)}
+.icon.live{background:var(--lilac);border-color:var(--lilac);color:#1d1640}
+.icon:disabled{opacity:.4}
+.icon.big{width:76px;height:76px}.icon.big svg{width:32px;height:32px}
+
+/* voice + avatar shared */
+.stage{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 20px}
+.orb{width:180px;height:180px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3A4387,#1F2647 70%);border:2px solid var(--line);transition:transform .2s,border-color .2s,box-shadow .2s}
+[data-state=listening] .orb{border-color:var(--lilac);box-shadow:0 0 0 10px rgba(180,168,245,.15),0 0 60px rgba(180,168,245,.35)}
+[data-state=thinking] .orb{animation:think 1.4s ease-in-out infinite}
+[data-state=speaking] .orb{border-color:var(--lamp);box-shadow:0 0 0 calc(var(--lvl,0)*22px) rgba(242,182,92,.18),0 0 70px rgba(242,182,92,.35)}
+@keyframes think{50%{transform:scale(.94);border-color:var(--muted)}}
+.stateLabel{margin-top:18px;font-size:15px;color:var(--muted);min-height:24px;text-align:center}
+[data-state=listening] .stateLabel{color:var(--lilac)}
+[data-state=speaking] .stateLabel{color:var(--lamp)}
+.heard{margin-top:10px;text-align:center;max-width:420px;min-height:48px}
+.heard .you{color:var(--muted);font-size:15px}
+.heard .said{font:400 19px/1.4 var(--serif);margin-top:8px;max-height:30vh;overflow-y:auto}
+.controls{display:flex;justify-content:center;align-items:center;gap:18px;padding:10px 16px 14px}
+.toggle{display:flex;align-items:center;gap:10px;justify-content:center;font-size:14px;color:var(--muted);padding-bottom:6px}
+.sw{position:relative;width:46px;height:28px;border-radius:99px;background:var(--raised);border:1px solid var(--line);flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:left .15s}
+.sw[aria-checked=true]{background:#4b3f8c;border-color:var(--lilac)}
+.sw[aria-checked=true]::after{left:21px;background:var(--lilac)}
+#avatarCanvasWrap{position:absolute;inset:0}
+#avatarCanvasWrap canvas{width:100%!important;height:100%!important;display:block}
+#avatarPane .stage{padding:0}
+#avatarPane .overlay{position:absolute;left:0;right:0;bottom:8px;padding:0 16px;text-align:center;pointer-events:none}
+#avatarPane .overlay .said{font:400 17px/1.4 var(--serif);background:rgba(22,27,54,.78);border-radius:var(--r-m);padding:8px 12px;display:inline-block;max-height:22vh;overflow-y:auto;pointer-events:auto}
+#avatarPane .overlay .said:empty{display:none}
+.pill{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(22,27,54,.85);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font-size:14px;color:var(--muted)}
+[data-state=listening] .pill{color:var(--lilac);border-color:var(--lilac)}
+[data-state=speaking] .pill{color:var(--lamp);border-color:var(--lamp)}
+.micLive{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:14px;background:var(--lilac);color:#1d1640;font-size:12px;font-weight:700;border-radius:99px;padding:4px 10px;display:none;z-index:20}
+.micLive.on{display:block}
+
+/* lists (history, memory) */
+.listWrap{flex:1;padding:4px 16px 16px}
+.h2{font:600 20px/1.2 var(--serif);margin:16px 0 10px}
+.row{display:flex;align-items:center;gap:10px;background:var(--deep);border:1px solid var(--line);border-radius:var(--r-s);padding:12px;margin-bottom:8px}
+.row .grow{flex:1;min-width:0}
+.row .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row small{color:var(--muted)}
+.row.done .t{text-decoration:line-through;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--raised);border-radius:12px;padding:10px 14px;min-height:44px;font-weight:600;font-size:14px}
+.btn.primary{background:var(--lamp);color:var(--lamp-ink);border-color:var(--lamp)}
+.btn.ghost{background:none}
+.btn.danger{color:var(--danger);background:none;border-color:#6a3a4a}
+.mini{border:0;background:none;color:var(--muted);min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:10px}
+.mini svg{width:20px;height:20px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 16px 8px}
+.tabs button{border:1px solid var(--line);background:none;border-radius:99px;padding:8px 14px;white-space:nowrap;font-size:14px;min-height:40px}
+.tabs button.on{background:var(--raised);border-color:var(--raised)}
+.addRow{display:flex;gap:8px;margin-bottom:12px}
+.addRow input{flex:1;min-width:0}
+input[type=text],input[type=password],input[type=number],input[type=url],select,textarea.field{background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-height:46px}
+label.f{display:block;margin:12px 0 4px;font-size:14px;color:var(--muted)}
+.card{background:var(--deep);border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px;margin-bottom:12px}
+.card p{margin:6px 0;color:var(--muted);font-size:14px}
+.note{font-size:13px;color:var(--muted);margin:6px 0 0}
+.btnRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.prog{height:6px;background:var(--raised);border-radius:99px;overflow:hidden;margin-top:10px}
+.prog i{display:block;height:100%;background:var(--lamp);width:0}
+
+/* nav */
+nav{display:flex;border-top:1px solid var(--line);background:var(--ink);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;height:var(--nav-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;color:var(--muted)}
+nav button svg{width:22px;height:22px}
+nav button.on{color:var(--lamp)}
+.kbd nav{display:none}
+
+/* welcome */
+#welcome{padding:24px 22px;justify-content:center}
+#welcome .greet{font-size:40px}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--raised);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:50;max-width:90vw;font-size:14px;display:none}
+.toast.on{display:block}
+dialog{background:var(--deep);color:var(--text);border:1px solid var(--line);border-radius:var(--r-m);max-width:92vw;width:420px;padding:18px}
+dialog::backdrop{background:rgba(5,8,25,.6)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="offlineBar" role="button" tabindex="0">You're offline. Your chats, memories, tasks and notes all still work. Tap to see what else works offline.</div>
+  <div class="top" id="topbar">
+    <h1 id="brand">Orrin</h1>
+    <div class="status" id="status" aria-live="polite"><i class="dot"></i><span id="statusText">Starting…</span></div>
+  </div>
+  <div class="micLive" id="micLive" role="status">● Mic on</div>
+
+  <!-- WELCOME (first run) -->
+  <section class="view" id="welcome">
+    <h2 class="greet">Hello. Let's set up your assistant.</h2>
+    <p class="sub">Everything you save stays on this phone unless you choose an online AI service.</p>
+    <label class="f" for="wName">What should I call you?</label>
+    <input type="text" id="wName" autocomplete="given-name" placeholder="Your name">
+    <label class="f" for="wAgent">Assistant's name</label>
+    <input type="text" id="wAgent" value="Orrin">
+    <div class="btnRow"><button class="btn primary" id="wGo">Start</button></div>
+  </section>
+
+  <!-- HOME -->
+  <section class="view" id="home">
+    <h2 class="greet" id="homeGreet">Good to see you.</h2>
+    <p class="sub">How would you like to talk?</p>
+    <div class="modes">
+      <button class="mode" data-go="text">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#F2B65C" stroke-width="2"><rect x="5" y="8" width="30" height="20" rx="8"/><path d="M12 28l-3 6 9-6"/><path d="M12 16h16M12 21h10"/></svg>
+        <span><b>Text</b><small>Type and read replies</small></span>
+      </button>
+      <button class="mode" data-go="voice">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#B4A8F5" stroke-width="2"><rect x="14" y="5" width="12" height="20" rx="6"/><path d="M8 19a12 12 0 0024 0M20 31v5"/></svg>
+        <span><b>Voice</b><small>Speak and hear replies, hands-free</small></span>
+      </button>
+      <button class="mode" data-go="avatar">
+        <svg viewBox="0 0 40 40" fill="none" stroke="#ECEAF6" stroke-width="2"><circle cx="20" cy="16" r="10"/><circle cx="16.5" cy="15" r="1.4" fill="#ECEAF6"/><circle cx="23.5" cy="15" r="1.4" fill="#ECEAF6"/><path d="M16 20c2 2 6 2 8 0M8 36c2-6 7-8 12-8s10 2 12 8"/></svg>
+        <span><b>Avatar</b><small>Talk face to face with a 3D character</small></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- TALK (text / voice / avatar share one conversation) -->
+  <section class="view" id="talk">
+    <div class="seg" role="tablist">
+      <button data-mode="text" role="tab">Text</button>
+      <button data-mode="voice" role="tab">Voice</button>
+      <button data-mode="avatar" role="tab">Avatar</button>
+    </div>
+
+    <div class="pane" id="textPane">
+      <div id="msgs" class="scroll" aria-live="polite"></div>
+    </div>
+
+    <div class="pane" id="voicePane" data-state="idle">
+      <div class="stage">
+        <div class="orb" id="orb"></div>
+        <div class="stateLabel" id="vState">Tap the microphone to talk</div>
+        <div class="heard"><div class="you" id="vHeard"></div><div class="said" id="vSaid"></div></div>
+      </div>
+      <div class="toggle"><button class="sw" id="handsFree" role="switch" aria-checked="false" aria-label="Hands-free conversation"></button><span>Hands-free: keep listening after each reply</span></div>
+    </div>
+
+    <div class="pane" id="avatarPane" data-state="idle">
+      <div class="stage">
+        <div id="avatarCanvasWrap"></div>
+        <div class="pill" id="aState">Ready</div>
+        <div class="overlay"><div class="you" id="aHeard" style="color:var(--muted);font-size:14px;margin-bottom:6px"></div><div class="said" id="aSaid"></div></div>
+      </div>
+    </div>
+
+    <div class="controls" id="voiceControls">
+      <button class="icon" id="muteBtn" aria-label="Mute voice replies" title="Mute voice replies"></button>
+      <button class="icon big primary" id="bigMic" aria-label="Start listening"></button>
+      <button class="icon" id="stopBtn" aria-label="Stop" title="Stop speaking or generating"></button>
+    </div>
+
+    <div class="composer">
+      <button class="icon" id="micBtn" aria-label="Speak"></button>
+      <textarea id="input" rows="1" placeholder="Message" enterkeyhint="send"></textarea>
+      <button class="icon primary" id="sendBtn" aria-label="Send"></button>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="view" id="history">
+    <div class="listWrap scroll">
+      <div class="btnRow" style="margin-top:4px"><button class="btn primary" id="newChat">New conversation</button></div>
+      <div class="h2">Conversations</div>
+      <div id="histList"></div>
+      <div class="btnRow"><button class="btn danger" id="clearHist">Clear all conversations</button></div>
+    </div>
+  </section>
+
+  <!-- MEMORY -->
+  <section class="view" id="memory">
+    <div class="tabs" id="memTabs">
+      <button data-t="memories" class="on">Memories</button>
+      <button data-t="tasks">Tasks</button>
+      <button data-t="notes">Notes</button>
+      <button data-t="reminders">Reminders</button>
+    </div>
+    <div class="listWrap scroll" id="memBody"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="settings">
+    <div class="listWrap scroll" id="setBody"></div>
+  </section>
+
+  <nav id="nav">
+    <button data-v="home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg>Home</button>
+    <button data-v="talk" aria-label="Talk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>Talk</button>
+    <button data-v="history" aria-label="History"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>History</button>
+    <button data-v="memory" aria-label="Memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 016 6c0 3-2 4-2 7H8c0-3-2-4-2-7a6 6 0 016-6zM9 20h6"/></svg>Memory</button>
+    <button data-v="settings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Settings</button>
+  </nav>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="dlg"><div id="dlgBody"></div><div class="btnRow" id="dlgBtns"></div></dialog>
+</div>
+<script>
+"use strict";
+/* ============ Orrin personal agent — core ============ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmtTime = t => new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+const ICON = {
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5l18-8.5L3 3.5l2.5 8.5zM5.5 12H13"/></svg>',
+  stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+  vol: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></svg>',
+  mute: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l5 6M21 9l-5 6"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>',
+  checked: '<svg viewBox="0 0 24 24" fill="none" stroke="#8FD6B4" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+  cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>',
+};
+
+/* ---------- Storage adapter ----------
+   Inside the Claude app preview: uses window.storage (Claude's artifact storage).
+   Deployed on the web: uses IndexedDB on this device. No cloud sync. */
+const Store = (() => {
+  const hasClaude = typeof window.storage === "object" && window.storage && typeof window.storage.get === "function";
+  let dbp = null;
+  const idb = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("orrin", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  const mem = {}; // last-resort in-memory fallback
+  let mode = hasClaude ? "claude" : (typeof indexedDB !== "undefined" ? "idb" : "memory");
+  async function get(k) {
+    try {
+      if (mode === "claude") { const r = await window.storage.get(k, false); return r ? JSON.parse(r.value) : null; }
+      if (mode === "idb") { const db = await idb(); return await new Promise((res, rej) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result ?? null); q.onerror = () => rej(q.error); }); }
+    } catch (e) { if (mode === "idb") { console.warn("IndexedDB unavailable", e); mode = "memory"; } return mem[k] ?? null; }
+    return mem[k] ?? null;
+  }
+  async function set(k, v) {
+    mem[k] = v;
+    try {
+      if (mode === "claude") return await window.storage.set(k, JSON.stringify(v), false);
+      if (mode === "idb") { const db = await idb(); return await new Promise((res, rej) => { const t = db.transaction("kv", "readwrite"); t.objectStore("kv").put(v, k); t.oncomplete = () => res(true); t.onerror = () => rej(t.error); }); }
+    } catch (e) { console.warn("save failed", k, e); }
+  }
+  async function del(k) {
+    delete mem[k];
+    try {
+      if (mode === "claude") return await window.storage.delete(k, false);
+      if (mode === "idb") { const db = await idb(); const t = db.transaction("kv", "readwrite"); t.objectStore("kv").delete(k); }
+    } catch (e) { /* key may not exist */ }
+  }
+  return { get, set, del, get mode() { return mode; } };
+})();
+
+/* ---------- App data ---------- */
+const DEFAULT_SETTINGS = {
+  setupDone: false, userName: "", agentName: "Orrin",
+  provider: "auto",               // auto | claude | openai | webllm | helper
+  oa: { preset: "groq", baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", key: "" },
+  webllmModel: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", webllmDownloaded: false, webllmAuto: "offline", localSpeech: "", localSpeechOn: false,
+  personality: "Warm, concise and practical. Speak naturally, like a thoughtful friend who is good at getting things done.",
+  look: { kind: "3d", skin: "#c98c6c", hair: "#241812", eyes: "#3f6788", shirt: "#2c346c", glasses: false, beard: false, longHair: false },
+  tts: { engine: "device", key: "", voiceId: "", model: "eleven_flash_v2_5" },
+  voiceURI: "", rate: 1, pitch: 1, lang: "", muted: false, handsFree: false, autoSpeakText: false,
+};
+const OA_PRESETS = {
+  groq: { label: "Groq (free tier)", baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.1-8b-instant", keyUrl: "https://console.groq.com/keys" },
+  gemini: { label: "Google Gemini (free tier)", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", keyUrl: "https://aistudio.google.com/apikey" },
+  openrouter: { label: "OpenRouter (free models)", baseUrl: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free", keyUrl: "https://openrouter.ai/keys" },
+  custom: { label: "Other OpenAI-compatible", baseUrl: "", model: "", keyUrl: "" },
+};
+
+const S = {
+  settings: { ...DEFAULT_SETTINGS },
+  convs: [],          // [{id,title,created,updated,messages:[{role,content,t,via}]}]
+  currentId: null,
+  memories: [],       // [{id,text,t}]
+  notes: [],          // [{id,text,t}]
+  tasks: [],          // [{id,text,done,t}]
+  reminders: [],      // [{id,text,due,fired,t}]
+  mode: "text",
+  busy: false,
+  online: navigator.onLine,
+};
+
+async function loadAll() {
+  const [st, cv, me, no, ta, re, cur] = await Promise.all(
+    ["settings", "convs", "memories", "notes", "tasks", "reminders", "currentId"].map(k => Store.get(k)));
+  S.settings = { ...DEFAULT_SETTINGS, ...(st || {}), oa: { ...DEFAULT_SETTINGS.oa, ...((st && st.oa) || {}) }, look: { ...DEFAULT_SETTINGS.look, ...((st && st.look) || {}) }, tts: { ...DEFAULT_SETTINGS.tts, ...((st && st.tts) || {}) } };
+  PhotoAvatar.photo = await Store.get("avatarPhoto");
+  S.convs = cv || []; S.memories = me || []; S.notes = no || []; S.tasks = ta || []; S.reminders = re || [];
+  S.currentId = cur && S.convs.some(c => c.id === cur) ? cur : null;
+}
+const save = {
+  settings: () => Store.set("settings", S.settings),
+  convs: () => Store.set("convs", S.convs),
+  memories: () => Store.set("memories", S.memories),
+  notes: () => Store.set("notes", S.notes),
+  tasks: () => Store.set("tasks", S.tasks),
+  reminders: () => Store.set("reminders", S.reminders),
+  current: () => Store.set("currentId", S.currentId),
+};
+
+function currentConv(create = true) {
+  let c = S.convs.find(c => c.id === S.currentId);
+  if (!c && create) {
+    c = { id: uid(), title: "New conversation", created: Date.now(), updated: Date.now(), messages: [] };
+    S.convs.unshift(c); S.currentId = c.id; save.current();
+  }
+  return c;
+}
+
+/* ---------- Local tools (work fully offline) ---------- */
+const Tools = {
+  remember(text) { text = text.trim(); if (!text) return null; const m = { id: uid(), text, t: Date.now() }; S.memories.unshift(m); save.memories(); return `Remembered: "${text}"`; },
+  add_note(text) { text = text.trim(); if (!text) return null; S.notes.unshift({ id: uid(), text, t: Date.now() }); save.notes(); return "Note saved"; },
+  add_task(text) { text = text.trim(); if (!text) return null; S.tasks.unshift({ id: uid(), text, done: false, t: Date.now() }); save.tasks(); return `Task added: ${text}`; },
+  complete_task(text) {
+    const q = text.trim().toLowerCase(); const t = S.tasks.find(t => !t.done && t.text.toLowerCase().includes(q));
+    if (!t) return `No open task matching "${text}"`; t.done = true; save.tasks(); return `Completed: ${t.text}`;
+  },
+  set_reminder(text, minutes, at) {
+    let due = at ? Date.parse(at) : Date.now() + Number(minutes || 0) * 60000;
+    if (!due || isNaN(due) || due < Date.now() - 60000) return "Couldn't understand the reminder time";
+    S.reminders.unshift({ id: uid(), text: text.trim(), due, fired: false, t: Date.now() }); save.reminders();
+    askNotifyPermission();
+    return `Reminder set for ${fmtTime(due)}`;
+  },
+};
+function runAction(a) {
+  try {
+    switch (a.type) {
+      case "remember": return Tools.remember(a.text || "");
+      case "add_note": return Tools.add_note(a.text || "");
+      case "add_task": return Tools.add_task(a.text || "");
+      case "complete_task": return Tools.complete_task(a.text || "");
+      case "set_reminder": return Tools.set_reminder(a.text || "Reminder", a.minutes, a.at);
+    }
+  } catch (e) { console.warn(e); }
+  return null;
+}
+/* Parse <<action {...}>> lines the AI emits; strip them from visible text. */
+function extractActions(text) {
+  const actions = [];
+  const clean = text.replace(/<<action\s*(\{[\s\S]*?\})\s*>>/g, (_, j) => { try { actions.push(JSON.parse(j)); } catch { } return ""; }).trim();
+  return { clean, actions };
+}
+
+/* Slash commands — handled locally, no AI needed */
+function parseCommand(txt) {
+  const m = txt.match(/^\/(\w+)\s*([\s\S]*)$/); if (!m) return null;
+  const [, cmd, rest] = m;
+  switch (cmd.toLowerCase()) {
+    case "remember": return Tools.remember(rest) || "Usage: /remember I prefer short answers";
+    case "note": return Tools.add_note(rest) || "Usage: /note your note text";
+    case "task": return Tools.add_task(rest) || "Usage: /task buy milk";
+    case "done": return Tools.complete_task(rest);
+    case "remind": {
+      const r = rest.match(/^(\d+)\s*(m|min|mins|minutes|h|hr|hours)?\s+([\s\S]+)/i);
+      if (!r) return "Usage: /remind 20 take a break  (or /remind 2h call mum)";
+      const mins = Number(r[1]) * (/^h/i.test(r[2] || "") ? 60 : 1);
+      return Tools.set_reminder(r[3], mins);
+    }
+    case "tasks": { const o = S.tasks.filter(t => !t.done); return o.length ? "Open tasks:\n" + o.map(t => "• " + t.text).join("\n") : "No open tasks."; }
+    case "notes": return S.notes.length ? "Notes:\n" + S.notes.slice(0, 10).map(n => "• " + n.text).join("\n") : "No notes yet.";
+    case "memories": return S.memories.length ? "What I remember:\n" + S.memories.map(m => "• " + m.text).join("\n") : "No memories saved yet.";
+    case "help": return HELP_TEXT;
+  }
+  return null;
+}
+const HELP_TEXT = `Commands that work even offline:
+• /remember fact — save a long-term memory
+• /task text — add a task, /done text — complete it
+• /note text — save a note
+• /remind 20 text — reminder in 20 minutes (use 2h for hours)
+• /tasks, /notes, /memories — list them
+You can also just ask in plain words, like "remind me in 10 minutes to stretch".`;
+/* ============ AI brain: replaceable providers ============
+   Every provider implements: available() -> {ok, why}, and
+   chat({system, messages, signal, onToken}) -> full reply text.
+   The UI never talks to a provider directly; it calls Brain.reply(). */
+
+function systemPrompt() {
+  const st = S.settings, now = new Date();
+  const mem = S.memories.length ? S.memories.map(m => "- " + m.text).join("\n") : "(none yet)";
+  const open = S.tasks.filter(t => !t.done).slice(0, 15).map(t => "- " + t.text).join("\n") || "(none)";
+  return `You are ${st.agentName}, a personal AI assistant for ${st.userName || "the user"}, running in a phone app.
+Personality: ${st.personality}
+Current local time: ${now.toString()}.
+Replies may be read aloud, so keep them conversational and fairly short unless asked for detail. Use plain text; simple lists are fine.
+
+Long-term memories about the user (saved by them; treat as true unless corrected):
+${mem}
+
+Open tasks:
+${open}
+
+You can take actions inside this app. To do so, put one action per line at the very END of your reply, exactly in this form:
+<<action {"type":"add_task","text":"..."}>>
+<<action {"type":"complete_task","text":"part of task name"}>>
+<<action {"type":"add_note","text":"..."}>>
+<<action {"type":"remember","text":"a durable fact or preference about the user"}>>
+<<action {"type":"set_reminder","text":"...","minutes":30}>>   (or "at":"ISO-8601 local datetime")
+Only use actions when the user clearly asks for them, or for "remember" when the user explicitly asks you to remember something. You cannot send messages, emails, make calls, browse the web, or buy anything — if asked, offer to draft the text instead and say they'll need to send it themselves. Never claim to have done something outside this app.`;
+}
+
+function buildHistory(conv, limit = 24) {
+  const out = [];
+  for (const m of conv.messages.slice(-limit)) {
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    if (!m.content) continue;
+    const last = out[out.length - 1];
+    if (last && last.role === m.role) last.content += "\n\n" + m.content; else out.push({ role: m.role, content: m.content });
+  }
+  while (out.length && out[0].role !== "user") out.shift();
+  return out;
+}
+
+function withTimeout(signal, ms) {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(new Error("timeout")), ms);
+  if (signal) signal.addEventListener("abort", () => c.abort(signal.reason), { once: true });
+  c.signal.addEventListener("abort", () => clearTimeout(t), { once: true });
+  return c.signal;
+}
+
+/* --- 1. Claude, only when this app is opened inside the Claude app/claude.ai ---
+   Officially supported: Claude artifacts may call the API without a key; usage counts
+   toward the person's own Claude plan. Does NOT work once deployed to your own website. */
+let claudeState = "unknown"; // unknown | ok | no
+const ClaudeProvider = {
+  id: "claude", label: "Claude (inside Claude app)",
+  available() {
+    if (!S.online) return { ok: false, why: "offline" };
+    if (claudeState === "no") return { ok: false, why: "only works when opened inside the Claude app" };
+    return { ok: true };
+  },
+  async chat({ system, messages, signal }) {
+    let r;
+    try {
+      r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", headers: { "Content-Type": "application/json" }, signal: withTimeout(signal, 90000),
+        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, system, messages }),
+      });
+    } catch (e) { if (signal?.aborted) throw e; claudeState = "no"; throw new Error("Claude isn't reachable from here"); }
+    if (!r.ok) { if ([401, 403, 404, 405].includes(r.status)) claudeState = "no"; throw new Error("Claude returned error " + r.status); }
+    const d = await r.json();
+    claudeState = "ok";
+    return (d.content || []).filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+  },
+};
+
+/* --- 2. Any OpenAI-compatible service with a free tier (Groq, Gemini, OpenRouter) ---
+   Your key is stored only on this phone and sent only to that service. */
+const OpenAIProvider = {
+  id: "openai", label: "Free online AI (your key)",
+  available() {
+    const o = S.settings.oa;
+    if (!o.key || !o.baseUrl || !o.model) return { ok: false, why: "no API key set" };
+    if (!S.online) return { ok: false, why: "offline" };
+    return { ok: true };
+  },
+  async chat({ system, messages, signal, onToken }) {
+    const o = S.settings.oa;
+    const headers = { "Content-Type": "application/json", Authorization: "Bearer " + o.key };
+    if (/openrouter/.test(o.baseUrl)) { headers["HTTP-Referer"] = location.origin; headers["X-Title"] = S.settings.agentName; }
+    const r = await fetch(o.baseUrl.replace(/\/$/, "") + "/chat/completions", {
+      method: "POST", headers, signal: withTimeout(signal, 90000),
+      body: JSON.stringify({ model: o.model, stream: true, max_tokens: 1200, messages: [{ role: "system", content: system }, ...messages] }),
+    });
+    if (!r.ok) {
+      let msg = "Service error " + r.status;
+      try { const j = await r.json(); msg += ": " + (j.error?.message || j.message || "").slice(0, 160); } catch { }
+      if (r.status === 401) msg = "The API key was rejected. Check it in Settings.";
+      if (r.status === 429) msg = "Free-tier limit reached for now. Try again in a minute.";
+      throw new Error(msg);
+    }
+    const reader = r.body.getReader(), dec = new TextDecoder(); let buf = "", full = "";
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n"); buf = lines.pop();
+      for (const ln of lines) {
+        const s = ln.trim(); if (!s.startsWith("data:")) continue;
+        const data = s.slice(5).trim(); if (data === "[DONE]") continue;
+        try { const tok = JSON.parse(data).choices?.[0]?.delta?.content; if (tok) { full += tok; onToken?.(full); } } catch { }
+      }
+    }
+    return full.trim();
+  },
+};
+
+/* --- 3. On-device model via WebLLM (free, private, works offline after download) ---
+   Needs WebGPU (recent Chrome on many, not all, Android phones) and a ~400MB+ one-time download. */
+const WebLLMProvider = {
+  id: "webllm", label: "On-device model", engine: null, loading: false,
+  supported() { return !!navigator.gpu; },
+  available() {
+    if (!this.supported()) return { ok: false, why: "this browser has no WebGPU" };
+    if (!this.engine) return { ok: false, why: "not downloaded yet (Settings)" };
+    return { ok: true };
+  },
+  async load(onProgress) {
+    if (this.engine || this.loading) return; this.loading = true;
+    try {
+      // bundled copy first (works offline once cached); online copy as a fallback for the Claude preview
+      let webllm; try { webllm = await import(new URL("web-llm.js", location.href).href); } catch { webllm = await import("https://esm.run/@mlc-ai/web-llm"); }
+      this.engine = await webllm.CreateMLCEngine(S.settings.webllmModel, {
+        initProgressCallback: p => onProgress?.(p.progress ?? 0, p.text || ""),
+      });
+      if (!S.settings.webllmDownloaded) { S.settings.webllmDownloaded = true; save.settings(); Offline.persist(); }
+    } finally { this.loading = false; }
+  },
+  async chat({ system, messages, signal, onToken }) {
+    const onAbort = () => { try { this.engine.interruptGenerate(); } catch { } };
+    signal?.addEventListener("abort", onAbort, { once: true });
+    const chunks = await this.engine.chat.completions.create({ stream: true, max_tokens: 600, messages: [{ role: "system", content: system }, ...messages] });
+    let full = "";
+    for await (const c of chunks) { const tok = c.choices?.[0]?.delta?.content; if (tok) { full += tok; onToken?.(full); } }
+    return full.trim();
+  },
+};
+
+/* --- 4. Built-in helper: no AI, always available, handles tools and basic questions --- */
+const HelperProvider = {
+  id: "helper", label: "Built-in helper (no AI)",
+  available() { return { ok: true }; },
+  async chat({ messages }) {
+    const q = (messages[messages.length - 1]?.content || "").trim(), l = q.toLowerCase();
+    let m;
+    if ((m = l.match(/remind me (?:in )?(\d+)\s*(minutes?|mins?|hours?|hrs?|h|m)\s*(?:to|that|about)?\s*(.+)/)))
+      return Tools.set_reminder(q.slice(q.toLowerCase().indexOf(m[3])), Number(m[1]) * (/^h/.test(m[2]) ? 60 : 1));
+    if ((m = q.match(/^(?:please )?remember(?: that)?\s+(.+)/i))) return Tools.remember(m[1]);
+    if ((m = q.match(/^(?:add (?:a )?task|add to (?:my )?(?:to-?do|list)|todo)[:\s]+(.+)/i))) return Tools.add_task(m[1]);
+    if ((m = q.match(/^(?:take a |add a |make a )?note[:\s]+(.+)/i))) return Tools.add_note(m[1]);
+    if (/what (do you|did you) (remember|know) about me/.test(l)) return parseCommand("/memories");
+    if (/(my|open) tasks|to-?do list/.test(l)) return parseCommand("/tasks");
+    if (/what time|the time/.test(l)) return "It's " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ".";
+    if (/what('s| is) the date|today'?s date|what day/.test(l)) return "Today is " + new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" }) + ".";
+    if (/^(hi|hello|hey|good (morning|afternoon|evening))\b/.test(l)) return `Hello${S.settings.userName ? " " + S.settings.userName : ""}. I'm running in basic mode without an AI model right now, but I can save tasks, notes, memories and reminders. Say "help" to see how.`;
+    if (/^help\b/.test(l)) return HELP_TEXT;
+    return `I can't answer that without an AI model. ${Brain.whyNoAI()}\n\nI can still help offline with tasks, notes, memories and reminders. Say "help" to see how.`;
+  },
+};
+
+const PROVIDERS = { claude: ClaudeProvider, openai: OpenAIProvider, webllm: WebLLMProvider, helper: HelperProvider };
+
+const Brain = {
+  pick() {
+    const p = S.settings.provider;
+    if (p !== "auto") { const pr = PROVIDERS[p]; return pr.available().ok ? pr : HelperProvider; }
+    for (const pr of [ClaudeProvider, OpenAIProvider, WebLLMProvider]) if (pr.available().ok) return pr;
+    return HelperProvider;
+  },
+  whyNoAI() {
+    if (!S.online && !WebLLMProvider.engine) return "You're offline, and the on-device model isn't loaded.";
+    const p = S.settings.provider;
+    if (p !== "auto" && p !== "helper") return `${PROVIDERS[p].label}: ${PROVIDERS[p].available().why || "unavailable"}.`;
+    return "To turn on full AI, open Settings and add a free API key, or download the on-device model.";
+  },
+  label() { return this.pick().label; },
+  async reply(conv, { signal, onToken }) {
+    const messages = buildHistory(conv), system = systemPrompt();
+    let pr = this.pick();
+    try {
+      return { text: await pr.chat({ system, messages, signal, onToken }), via: pr.id };
+    } catch (e) {
+      if (signal?.aborted) throw e;
+      // Claude probe failed in auto mode: silently try the next provider
+      if (pr === ClaudeProvider && S.settings.provider === "auto") {
+        const next = this.pick();
+        if (next !== ClaudeProvider) { updateStatus(); return { text: await next.chat({ system, messages, signal, onToken }), via: next.id }; }
+      }
+      throw e;
+    }
+  },
+};
+/* ============ Voice ============
+   Speech-to-text: Web Speech API (Chrome on Android). Usually sends audio to Google's
+   speech service, so it needs internet on most phones. Text-to-speech: speechSynthesis,
+   which uses the phone's own voices and often works offline. */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const Voice = {
+  localOK: false, rec: null, listening: false, speaking: false, level: 0, _boost: 0, _queue: [], _wantListen: false,
+  state: "idle", // idle | listening | thinking | speaking
+  sttSupported: !!SR, ttsSupported: "speechSynthesis" in window,
+
+  setState(s) {
+    this.state = s;
+    $$("#voicePane,#avatarPane").forEach(p => p.dataset.state = s);
+    const name = S.settings.agentName;
+    const txt = { idle: "Tap the microphone to talk", listening: "Listening…", thinking: `${name} is thinking…`, speaking: `${name} is speaking` }[s];
+    $("#vState").textContent = txt;
+    $("#aState").textContent = { idle: "Ready", listening: "Listening", thinking: "Thinking", speaking: "Speaking" }[s];
+    $("#micLive").classList.toggle("on", s === "listening");
+    const live = s === "listening";
+    [$("#micBtn"), $("#bigMic")].forEach(b => { b.classList.toggle("live", live); b.setAttribute("aria-label", live ? "Stop listening" : "Start listening"); });
+  },
+
+  listen() {
+    if (!SR) { toast("Voice input isn't supported in this browser. Try Chrome on Android."); return; }
+    if (this.listening) { this.stopListening(); return; }
+    this.stopSpeaking();
+    const rec = new SR();
+    rec.lang = S.settings.lang || navigator.language || "en-US";
+    // Offline: use the phone's on-device recogniser if it has one; otherwise say so instead of failing
+    if (!navigator.onLine) {
+      if (S.settings.localSpeechOn && this.localOK && "processLocally" in rec) { rec.processLocally = true; Offline.guard(true); this._guarded = true; }
+      else { toast("Voice input needs internet on this phone. Type your message instead."); $("#input").focus(); return; }
+    }
+    rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    let finalText = "";
+    rec.onstart = () => { this.listening = true; this.setState("listening"); showHeard(""); };
+    rec.onresult = e => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+      }
+      showHeard((finalText + " " + interim).trim());
+    };
+    rec.onerror = e => {
+      this.listening = false;
+      const msg = {
+        "not-allowed": "Microphone permission was blocked. Allow it in your browser's site settings.",
+        "service-not-allowed": "Speech recognition is blocked on this device.",
+        "network": "Speech recognition needs internet on this phone. You can still type.",
+        "no-speech": null, "aborted": null,
+        "audio-capture": "No microphone was found.",
+        "language-not-supported": "That speech language isn't supported. Change it in Settings.",
+      }[e.error];
+      if (msg) { toast(msg); this._wantListen = false; }
+      if (e.error === "no-speech" && S.settings.handsFree && this._wantListen) { setTimeout(() => this._wantListen && this.listen(), 300); }
+    };
+    rec.onend = () => {
+      if (this._guarded) { this._guarded = false; Offline.guard(false); }
+      this.listening = false; this.rec = null;
+      const t = finalText.trim();
+      if (t) { this._wantListen = S.settings.handsFree; sendMessage(t, { spoken: true }); }
+      else if (this.state === "listening") this.setState("idle");
+    };
+    this.rec = rec; this._wantListen = S.settings.handsFree;
+    try { rec.start(); } catch (e) { toast("Couldn't start the microphone: " + e.message); }
+  },
+  stopListening() { this._wantListen = false; try { this.rec?.abort(); } catch { } this.listening = false; if (this.state === "listening") this.setState("idle"); },
+
+  voices() { return this.ttsSupported ? speechSynthesis.getVoices() : []; },
+  pickVoice() {
+    const v = this.voices(); if (!v.length) return null;
+    return v.find(x => x.voiceURI === S.settings.voiceURI) || v.find(x => x.default && x.lang.startsWith((navigator.language || "en").slice(0, 2))) || v.find(x => x.lang.startsWith("en")) || v[0];
+  },
+  speak(text, after) {
+    if ((!this.ttsSupported && !ClonedVoice.configured()) || S.settings.muted || !text) { after?.(); return; }
+    if (this.ttsSupported) speechSynthesis.cancel();
+    const clean = text.replace(/```[\s\S]*?```/g, " (code shown on screen) ").replace(/[*_#`>]/g, "").replace(/https?:\/\/\S+/g, "link").replace(/^\s*[-•]\s*/gm, "");
+    // Android Chrome cuts off long utterances, so speak sentence by sentence
+    const parts = clean.match(/[^.!?\n]+[.!?]*|\n/g)?.map(s => s.trim()).filter(Boolean) || [clean];
+    const chunks = []; let cur = "";
+    for (const p of parts) { if ((cur + " " + p).length > 180 && cur) { chunks.push(cur); cur = p; } else cur = (cur + " " + p).trim(); }
+    if (cur) chunks.push(cur);
+    this._after = after; this.speaking = true; this.setState("speaking");
+    if (ClonedVoice.configured() && S.online) {
+      ClonedVoice.play(clean).then(() => { if (this.speaking) { this._queue = []; this._next(); } })
+        .catch(e => { if (!this.speaking) return; toast("Cloned voice unavailable, using phone voice. " + e.message); this._queue = chunks; this._next(); });
+      return;
+    }
+    this._queue = chunks; this._next();
+  },
+  _next() {
+    const c = this._queue.shift();
+    if (!c) { this.speaking = false; this.level = 0; this.setState("idle"); const a = this._after; this._after = null; a?.(); return; }
+    const u = new SpeechSynthesisUtterance(c);
+    const v = this.pickVoice(); if (v) { u.voice = v; u.lang = v.lang; }
+    u.rate = S.settings.rate; u.pitch = S.settings.pitch;
+    u.onboundary = () => { this._boost = 1; };   // word boundary -> mouth pulse
+    u.onend = () => this._next();
+    u.onerror = e => { if (e.error !== "interrupted" && e.error !== "canceled") console.warn("tts", e.error); this._next(); };
+    speechSynthesis.speak(u);
+  },
+  stopSpeaking() { ClonedVoice.stop(); this._queue = []; this._after = null; if (this.ttsSupported) speechSynthesis.cancel(); this.speaking = false; this.level = 0; if (this.state === "speaking") this.setState("idle"); },
+  stopAll() { this.stopListening(); this.stopSpeaking(); },
+
+  /* Mouth openness 0..1 for the avatar. There is no audio stream to analyse from
+     speechSynthesis, so we synthesise a syllable rhythm and pulse on word boundaries. */
+  tick(t) {
+    if (!this.speaking) { this.level += (0 - this.level) * 0.3; return this.level; }
+    const real = ClonedVoice.level();
+    if (real !== null) { this.level += (real - this.level) * 0.5; $("#voicePane").style.setProperty("--lvl", this.level.toFixed(2)); return this.level; }
+    this._boost *= 0.86;
+    const syl = 0.5 + 0.5 * Math.sin(t * 17) * Math.sin(t * 5.3 + 1);
+    const target = Math.min(1, 0.2 + syl * 0.7 + this._boost * 0.4);
+    this.level += (target - this.level) * 0.45;
+    $("#voicePane").style.setProperty("--lvl", this.level.toFixed(2));
+    return this.level;
+  },
+};
+if (Voice.ttsSupported) speechSynthesis.onvoiceschanged = () => { if ($("#voiceSel")) renderSettings(); };
+
+/* Called after an AI reply when the reply should be voiced */
+function voiceAfterReply(text) {
+  const handsFree = S.settings.handsFree && Voice._wantListen;
+  Voice.speak(text, () => { if (handsFree && S.mode !== "text") setTimeout(() => Voice.listen(), 250); });
+}
+/* ============ 3D avatar (Three.js r128, procedural, no external models) ============ */
+const THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("load failed")); document.head.appendChild(s); });
+}
+
+const Avatar = {
+  ready: false, failed: false, loading: null, parts: {},
+  isPhoto() { return S.settings.look.kind === "photo"; },
+  reset() {
+    try { this.parts.renderer?.dispose(); this.parts.renderer?.forceContextLoss(); } catch { }
+    this.ready = false; this.failed = false; this.loading = null; this.parts = {}; PhotoAvatar.ready = false; PhotoAvatar.work = null;
+    const w = $("#avatarCanvasWrap"); if (w) w.innerHTML = "";
+    if (S.mode === "avatar" && $("#talk").classList.contains("on")) this.init();
+  },
+  async init() {
+    if (this.isPhoto()) return PhotoAvatar.init();
+    if (this.ready || this.failed) return;
+    if (this.loading) return this.loading;
+    this.loading = (async () => {
+      try { if (!window.THREE) await loadScript(THREE_URL); this.build(); this.ready = true; }
+      catch (e) {
+        this.failed = true; console.warn(e);
+        $("#avatarCanvasWrap").innerHTML = '<div class="empty" style="position:absolute;inset:0;display:grid;place-items:center"><div><b>The 3D character couldn\'t load</b>Connect to the internet once so it can be saved for offline use. Voice and text still work.</div></div>';
+      }
+    })();
+    return this.loading;
+  },
+  build() {
+    const T = window.THREE, wrap = $("#avatarCanvasWrap");
+    const renderer = new T.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = T.sRGBEncoding;
+    wrap.appendChild(renderer.domElement);
+    wrap.style.background = "radial-gradient(ellipse at 50% 38%, #2E3770 0%, #1F2647 45%, #161B36 80%)";
+    const scene = new T.Scene();
+    const cam = new T.PerspectiveCamera(30, 1, 0.1, 50); cam.position.set(0, 0.05, 7.2);
+
+    scene.add(new T.HemisphereLight(0xdfe3ff, 0x2a2240, 0.6));
+    const key = new T.DirectionalLight(0xffe2bf, 0.95); key.position.set(2.5, 3, 4); scene.add(key);
+    const rim = new T.DirectionalLight(0xb4a8f5, 0.7); rim.position.set(-3, 1.5, -2.5); rim.intensity = 0.55; scene.add(rim);
+    const fill = new T.PointLight(0xf2b65c, 0.25, 12); fill.position.set(0, -1, 3); scene.add(fill);
+
+    const M = (c, r = 0.6, extra = {}) => new T.MeshStandardMaterial({ color: new T.Color(c).convertSRGBToLinear(), roughness: r, metalness: 0, ...extra });
+    const LK = S.settings.look, skin = M(LK.skin, 0.6), lipM = M(0xa0524f, 0.45), hairM = M(LK.hair, 0.85), white = M(0xf3efe9, 0.3);
+    const irisM = M(LK.eyes, 0.25), pupilM = M(0x07070c, 0.2), browM = M(0x1e140f, 0.9), shirt = M(LK.shirt, 0.85), mouthIn = M(0x2a0c0e, 0.9);
+    const sph = (r, ws = 32, hs = 24, ...a) => new T.SphereGeometry(r, ws, hs, ...a);
+    const mesh = (g, m, x = 0, y = 0, z = 0, sx = 1, sy = 1, sz = 1) => { const o = new T.Mesh(g, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); return o; };
+    // depth of the head's front surface at (x,y), so features sit on the skin rather than inside it
+    const HX = 0.86, HY = 1.05, HZ = 0.92, surf = (x, y) => HZ * Math.sqrt(Math.max(0, 1 - (x / HX) ** 2 - (y / HY) ** 2));
+
+    const rig = new T.Group(); scene.add(rig);           // whole bust (breathing)
+    const head = new T.Group(); head.position.y = 0.35; rig.add(head);
+
+    // torso + neck
+    const torso = mesh(sph(1, 40, 24), shirt, 0, -2.05, -0.1, 1.55, 0.85, 0.85); rig.add(torso);
+    rig.add(mesh(new T.CylinderGeometry(0.28, 0.34, 0.8, 24), skin, 0, -1.2, -0.08));
+    const collar = mesh(new T.TorusGeometry(0.38, 0.06, 10, 32), shirt, 0, -1.55, -0.08, 1, 1, 0.8); collar.rotation.x = Math.PI / 2; rig.add(collar);
+
+    // head + jaw
+    head.add(mesh(sph(1, 48, 40), skin, 0, 0, 0, HX, HY, HZ));
+    head.add(mesh(sph(1, 40, 30), skin, 0, -0.42, 0.02, 0.72, 0.66, 0.82));
+    // hair: cap tilted back to a forehead hairline, plus a bob around the back and sides
+    const cap = mesh(sph(1, 48, 32, 0, Math.PI * 2, 0, Math.PI * 0.5), hairM, 0, 0.06, -0.02, 0.92, 1.1, 0.99); cap.rotation.x = -0.62; head.add(cap);
+    head.add(mesh(sph(1, 40, 30), hairM, 0, -0.02, -0.24, 0.95, 1.08, 0.8));
+    const sweep = mesh(sph(1, 32, 20), hairM, -0.2, 0.62, 0.55, 0.55, 0.2, 0.36); sweep.rotation.z = 0.28; head.add(sweep);
+
+    // nose
+    head.add(mesh(sph(1, 24, 16), skin, 0, -0.03, surf(0, -0.03) - 0.06, 0.075, 0.17, 0.1));
+    head.add(mesh(sph(1, 20, 12), skin, 0, -0.17, surf(0, -0.17) - 0.03, 0.095, 0.07, 0.085));
+
+    // eyes
+    const eyes = [];
+    [-1, 1].forEach(s => {
+      const ex = 0.29 * s, ey = 0.1;
+      const socket = new T.Group(); socket.position.set(ex, ey, surf(ex, ey) - 0.06); head.add(socket);
+      const ball = new T.Group(); socket.add(ball);
+      ball.add(mesh(sph(0.15), white));
+      ball.add(mesh(sph(0.075, 24, 16), irisM, 0, 0, 0.12, 1, 1, 0.5));
+      ball.add(mesh(sph(0.036, 16, 12), pupilM, 0, 0, 0.142, 1, 1, 0.4));
+      ball.add(mesh(sph(0.015, 8, 8), M(0xffffff, 0.1, { emissive: 0xffffff, emissiveIntensity: 0.7 }), 0.03 * s, 0.035, 0.152)); // catchlight
+      // eyelids: skin domes that rotate shut over the eyeball
+      const up = mesh(sph(0.158, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), skin); socket.add(up);
+      const lo = mesh(sph(0.156, 28, 14, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), skin); socket.add(lo);
+      const by = 0.33, brow = mesh(new T.BoxGeometry(0.28, 0.045, 0.06), browM, 0.29 * s, by, surf(0.29, by) + 0.01); brow.rotation.z = -0.08 * s; head.add(brow);
+      eyes.push({ ball, up, lo, brow, s, by });
+    });
+
+    // mouth: dark interior + lips that open with speech
+    const my = -0.5, mouth = new T.Group(); mouth.position.set(0, my, 0.83); head.add(mouth);
+    const inner = mesh(sph(1, 24, 16), mouthIn, 0, 0, 0.0, 0.17, 0.02, 0.06); mouth.add(inner);
+    const upper = mesh(sph(1, 28, 16), lipM, 0, 0.03, 0.03, 0.19, 0.035, 0.06); mouth.add(upper);
+    const lower = mesh(sph(1, 28, 16), lipM, 0, -0.03, 0.03, 0.17, 0.045, 0.065); mouth.add(lower);
+    if (LK.glasses) {
+      const fr = M(0x15151c, 0.4);
+      eyes.forEach(e => { const g = mesh(new T.TorusGeometry(0.2, 0.018, 8, 40), fr, 0.29 * e.s, 0.1, surf(0.29, 0.1) + 0.11); head.add(g); });
+      head.add(mesh(new T.BoxGeometry(0.17, 0.025, 0.025), fr, 0, 0.13, surf(0, 0.13) + 0.07));
+    }
+    if (LK.beard) {
+      head.add(mesh(sph(1, 40, 30), hairM, 0, -0.62, 0.04, 0.75, 0.55, 0.84));
+      head.add(mesh(sph(1, 24, 12), hairM, 0, my + 0.075, 0.86, 0.17, 0.03, 0.05));
+    }
+    if (LK.longHair) {
+      head.add(mesh(sph(1, 40, 30), hairM, 0, -0.75, -0.3, 0.98, 0.95, 0.7));
+      [-1, 1].forEach(s => head.add(mesh(sph(1, 24, 16), hairM, 0.78 * s, -0.55, 0.05, 0.2, 0.6, 0.35)));
+    }
+    const corners = [-1, 1].map(s => { const c = mesh(sph(0.028, 12, 8), lipM, 0.18 * s, 0, 0.01); mouth.add(c); return c; });
+
+    // status halo behind the head
+    const halo = new T.Mesh(new T.RingGeometry(1.55, 1.6, 96), new T.MeshBasicMaterial({ color: 0x39427a, transparent: true, opacity: 0.6 }));
+    halo.position.set(0, 0.35, -1.2); scene.add(halo);
+
+    this.parts = { T, renderer, scene, cam, rig, head, torso, eyes, mouth, inner, upper, lower, corners, halo };
+    this.anim = { blinkAt: 1.5, blink: 0, gaze: new T.Vector2(), gazeT: new T.Vector2(), gazeAt: 0, smile: 0.35 };
+    const resize = () => { const w = wrap.clientWidth || 1, h = wrap.clientHeight || 1; renderer.setSize(w, h, false); cam.aspect = w / h; cam.position.z = w / h < 0.8 ? 8.6 : 7.2; cam.updateProjectionMatrix(); };
+    this.resize = resize; new ResizeObserver(resize).observe(wrap); resize();
+  },
+  frame(t, dt) {
+    if (this.isPhoto()) return PhotoAvatar.frame(t, dt);
+    if (!this.ready) return;
+    const P = this.parts, A = this.anim, st = Voice.state, lvl = Voice.tick(t);
+    // breathing + idle sway
+    P.rig.position.y = Math.sin(t * 1.6) * 0.015;
+    P.torso.scale.y = 0.85 + Math.sin(t * 1.6) * 0.008;
+    let yaw = Math.sin(t * 0.37) * 0.1 + Math.sin(t * 0.91) * 0.03, pitch = Math.sin(t * 0.53) * 0.04, roll = Math.sin(t * 0.29) * 0.03;
+    if (st === "listening") { roll += 0.09; pitch -= 0.04; }
+    if (st === "thinking") { yaw += 0.12; pitch -= 0.1; }
+    if (st === "speaking") { pitch += lvl * 0.05 + Math.sin(t * 3.1) * 0.025; yaw += Math.sin(t * 1.7) * 0.05; }
+    const h = P.head.rotation, k = Math.min(1, dt * 4);
+    h.y += (yaw - h.y) * k; h.x += (pitch - h.x) * k; h.z += (roll - h.z) * k;
+    // gaze: small saccades; looks up-right while thinking, at you while listening
+    if (t > A.gazeAt) { A.gazeT.set((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.3); A.gazeAt = t + 0.8 + Math.random() * 2.2; }
+    if (st === "thinking") A.gazeT.set(0.35, 0.3); if (st === "listening") A.gazeT.set(0, 0);
+    A.gaze.lerp(A.gazeT, Math.min(1, dt * 12));
+    // blinking
+    if (t > A.blinkAt) { A.blink = 1; A.blinkAt = t + 2 + Math.random() * 3.5; if (Math.random() < 0.15) A.blinkAt = t + 0.25; }
+    A.blink = Math.max(0, A.blink - dt * 7);
+    const closed = Math.sin(Math.min(1, A.blink) * Math.PI);
+    const browLift = st === "listening" ? 0.05 : st === "speaking" ? lvl * 0.03 : st === "thinking" ? 0.02 : 0;
+    P.eyes.forEach(e => {
+      e.ball.rotation.y = A.gaze.x; e.ball.rotation.x = -A.gaze.y;
+      e.up.rotation.x = -0.82 + closed * 0.87 - (st === "listening" ? 0.12 : 0);
+      e.lo.rotation.x = 1.25 - closed * 0.3;
+      e.brow.position.y = e.by + browLift - closed * 0.015;
+      e.brow.rotation.z = (-0.08 + (st === "thinking" && e.s > 0 ? 0.12 : 0)) * e.s;
+    });
+    // mouth
+    A.smile += ((st === "speaking" ? 0.25 : st === "listening" ? 0.5 : 0.4) - A.smile) * k;
+    P.inner.scale.y = 0.02 + lvl * 0.14; P.inner.scale.x = 0.17 - lvl * 0.03;
+    P.upper.position.y = 0.03 + lvl * 0.04; P.lower.position.y = -0.03 - lvl * 0.1;
+    P.corners.forEach((c, i) => { c.position.y = A.smile * 0.05 - lvl * 0.02; c.position.x = (i ? 1 : -1) * (0.18 - lvl * 0.02); });
+    // halo colour by state
+    const col = { idle: 0x39427a, listening: 0xb4a8f5, thinking: 0xa3a6c8, speaking: 0xf2b65c }[st];
+    P.halo.material.color.setHex(col);
+    P.halo.material.opacity = st === "thinking" ? 0.35 + 0.3 * Math.sin(t * 5) : st === "speaking" ? 0.45 + lvl * 0.5 : 0.6;
+    P.halo.scale.setScalar(1 + (st === "speaking" ? lvl * 0.04 : 0));
+    P.renderer.render(P.scene, P.cam);
+  },
+};
+/* ============ UI ============ */
+function toast(msg, ms = 3500) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), ms); }
+
+function dialog(html, buttons) {
+  return new Promise(res => {
+    const d = $("#dlg"); $("#dlgBody").innerHTML = html; const row = $("#dlgBtns"); row.innerHTML = "";
+    buttons.forEach(([label, val, cls]) => { const b = document.createElement("button"); b.className = "btn " + (cls || ""); b.textContent = label; b.onclick = () => { d.close(); res(val === "input" ? $("#dlgInput").value : val); }; row.appendChild(b); });
+    d.onclose = () => res(null);
+    if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+    setTimeout(() => $("#dlgInput")?.focus(), 50);
+  });
+}
+const confirmDlg = (msg, ok = "Delete") => dialog(`<p style="margin:0 0 6px">${esc(msg)}</p>`, [["Cancel", false, "ghost"], [ok, true, ok === "Delete" || ok.startsWith("Delete") || ok.startsWith("Clear") ? "danger" : "primary"]]);
+const promptDlg = (title, value = "") => dialog(`<label class="f" for="dlgInput" style="margin-top:0">${esc(title)}</label><textarea class="field" id="dlgInput" rows="3">${esc(value)}</textarea>`, [["Cancel", null, "ghost"], ["Save", "input", "primary"]]);
+
+/* light markdown: escape first, then format */
+function md(s) {
+  let h = esc(s);
+  h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, l, c) => `<pre><code>${c}</code></pre>`);
+  h = h.replace(/`([^`\n]+)`/g, "<code>$1</code>").replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/(^|\W)\*([^*\n]+)\*(?=\W|$)/g, "$1<i>$2</i>");
+  h = h.replace(/(^|\n)((?:\s*(?:[-*•]|\d+\.)\s+[^\n]+(?:\n|$))+)/g, (_, pre, block) => pre + "<ul>" + block.trim().split("\n").map(li => "<li>" + li.replace(/^\s*(?:[-*•]|\d+\.)\s+/, "") + "</li>").join("") + "</ul>");
+  return h.split(/\n{2,}/).map(p => p.startsWith("<pre>") || p.startsWith("<ul>") ? p : "<p>" + p.replace(/\n/g, "<br>") + "</p>").join("");
+}
+
+/* ---------- navigation ---------- */
+function go(view) {
+  $$(".view").forEach(v => v.classList.toggle("on", v.id === view));
+  $$("nav button").forEach(b => b.classList.toggle("on", b.dataset.v === view));
+  $("#nav").style.display = view === "welcome" ? "none" : "";
+  if (view !== "talk") Voice.stopListening();
+  if (view === "history") renderHistory();
+  if (view === "memory") renderMemory();
+  if (view === "settings") renderSettings();
+  if (view === "home") $("#homeGreet").textContent = greeting();
+  if (view === "talk") setMode(S.mode);
+}
+function greeting() { const h = new Date().getHours(), n = S.settings.userName; return (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + (n ? ", " + n + "." : "."); }
+function setMode(m) {
+  S.mode = m;
+  $$(".seg button").forEach(b => { b.classList.toggle("on", b.dataset.mode === m); b.setAttribute("aria-selected", b.dataset.mode === m); });
+  $("#textPane").classList.toggle("on", m === "text");
+  $("#voicePane").classList.toggle("on", m === "voice");
+  $("#avatarPane").classList.toggle("on", m === "avatar");
+  $("#voiceControls").style.display = m === "text" ? "none" : "";
+  $("#micBtn").style.display = m === "text" ? "" : "none";
+  $("#input").placeholder = m === "text" ? "Message " + S.settings.agentName : "Or type here";
+  if (m === "avatar") Avatar.init().then(() => Avatar.resize?.());
+  if (m === "text") renderMsgs(); else showLast();
+}
+
+/* ---------- conversation rendering ---------- */
+function msgEl(m) {
+  const d = document.createElement("div");
+  d.className = "msg " + (m.role === "user" ? "user" : m.role === "assistant" ? "ai" : "sys");
+  if (m.role === "assistant") {
+    d.innerHTML = md(m.content) + (m.chips || []).map(c => `<span class="chip">✓ ${esc(c)}</span>`).join("") +
+      (m.via ? `<span class="meta">${esc(PROVIDERS[m.via]?.label || m.via)}</span>` : "");
+  } else d.textContent = m.content;
+  return d;
+}
+function renderMsgs() {
+  const box = $("#msgs"), c = currentConv(false); box.innerHTML = "";
+  if (!c || !c.messages.length) {
+    box.innerHTML = `<div class="empty"><b>What's on your mind?</b>Ask anything, or try one of these.<div class="sugg">
+      <button>Plan my day</button><button>Remind me in 20 minutes to stretch</button><button>Help me draft a message</button><button>help</button></div></div>`;
+    $$(".sugg button", box).forEach(b => b.onclick = () => sendMessage(b.textContent));
+    return;
+  }
+  c.messages.forEach(m => box.appendChild(msgEl(m)));
+  box.scrollTop = box.scrollHeight;
+}
+function showHeard(t) { $("#vHeard").textContent = t ? "You: " + t : ""; $("#aHeard").textContent = t ? "You: " + t : ""; }
+function showSaid(t) { $("#vSaid").textContent = t; $("#aSaid").textContent = t; }
+function showLast() {
+  const c = currentConv(false), ms = c?.messages || [];
+  const lu = [...ms].reverse().find(m => m.role === "user"), la = [...ms].reverse().find(m => m.role === "assistant");
+  showHeard(lu?.content || ""); showSaid(la ? extractActions(la.content).clean : "");
+}
+
+/* ---------- sending ---------- */
+let inflight = null;
+async function sendMessage(text, { spoken = false } = {}) {
+  text = (text || "").trim(); if (!text) return;
+  if (S.busy) { toast("Still working on the last reply. Tap stop to cancel it."); return; }
+  const conv = currentConv();
+  conv.messages.push({ role: "user", content: text, t: Date.now() });
+  if (conv.title === "New conversation") conv.title = text.slice(0, 48);
+  conv.updated = Date.now();
+  const voiced = spoken || S.mode !== "text" || S.settings.autoSpeakText;
+
+  // local commands never need AI
+  const local = text.startsWith("/") ? parseCommand(text) : null;
+  if (local) {
+    conv.messages.push({ role: "assistant", content: local, t: Date.now(), via: "helper" });
+    save.convs(); renderMsgs(); showLast(); if (voiced) voiceAfterReply(local); return;
+  }
+
+  S.busy = true; setBusyUI(true); Voice.setState("thinking"); showHeard(text); showSaid("");
+  const box = $("#msgs"); if (S.mode === "text") { renderMsgs(); }
+  const live = document.createElement("div"); live.className = "msg ai"; live.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  if (S.mode === "text") { box.appendChild(live); box.scrollTop = box.scrollHeight; }
+  inflight = new AbortController();
+  try {
+    const { text: raw, via } = await Brain.reply(conv, {
+      signal: inflight.signal,
+      onToken: partial => { const vis = extractActions(partial.replace(/<<action[\s\S]*$/, "")).clean; live.innerHTML = md(vis); showSaid(vis); if (S.mode === "text") box.scrollTop = box.scrollHeight; },
+    });
+    const { clean, actions } = extractActions(raw || "");
+    const chips = actions.map(runAction).filter(Boolean);
+    const msg = { role: "assistant", content: clean || (chips.length ? "Done." : "(No reply)"), t: Date.now(), via, chips };
+    conv.messages.push(msg); conv.updated = Date.now(); save.convs();
+    renderMsgs(); showSaid(msg.content); if (S.mode !== "text") showHeard(text);
+    Voice.setState("idle");
+    if (voiced) voiceAfterReply(msg.content);
+  } catch (e) {
+    Voice.setState("idle");
+    const stopped = inflight?.signal.aborted;
+    const m = stopped ? "Stopped." : "Couldn't get a reply: " + (e.message || e) + (S.online ? "" : " (you're offline)");
+    conv.messages.push({ role: "system", content: m, t: Date.now() }); save.convs(); renderMsgs(); showSaid(stopped ? "" : m);
+    if (!stopped && S.mode !== "text") toast(m);
+  } finally { S.busy = false; setBusyUI(false); inflight = null; updateStatus(); }
+}
+function setBusyUI(b) { $("#sendBtn").disabled = b; }
+function stopEverything() { inflight?.abort(); Voice.stopAll(); }
+
+/* ---------- history ---------- */
+function renderHistory() {
+  const L = $("#histList"), list = [...S.convs].sort((a, b) => b.updated - a.updated);
+  L.innerHTML = list.length ? "" : '<p class="note">No conversations yet.</p>';
+  list.forEach(c => {
+    const r = document.createElement("div"); r.className = "row";
+    r.innerHTML = `<div class="grow" role="button" tabindex="0"><div class="t">${esc(c.title)}</div><small>${fmtTime(c.updated)}, ${c.messages.filter(m => m.role === "user").length} messages${c.id === S.currentId ? ", current" : ""}</small></div><button class="mini" aria-label="Delete conversation">${ICON.trash}</button>`;
+    $(".grow", r).onclick = () => { S.currentId = c.id; save.current(); go("talk"); setMode("text"); };
+    $(".mini", r).onclick = async () => { if (await confirmDlg(`Delete "${c.title}"?`)) { S.convs = S.convs.filter(x => x.id !== c.id); if (S.currentId === c.id) S.currentId = null; save.convs(); save.current(); renderHistory(); } };
+    L.appendChild(r);
+  });
+}
+
+/* ---------- memory / tasks / notes / reminders ---------- */
+let memTab = "memories";
+function renderMemory() {
+  $$("#memTabs button").forEach(b => b.classList.toggle("on", b.dataset.t === memTab));
+  const B = $("#memBody");
+  const intro = {
+    memories: "Long-term facts your assistant uses in every conversation. They're separate from chat history and stay on this phone.",
+    tasks: "Your to-do list. You can also say \"add a task to…\".",
+    notes: "Quick notes. You can also say \"note: …\".",
+    reminders: "Reminders alert you while the app is open. For alerts when it's closed, add them to your phone's calendar.",
+  }[memTab];
+  B.innerHTML = `<p class="note" style="margin:4px 0 12px">${intro}</p><div class="addRow"><input type="text" id="memNew" placeholder="${memTab === "reminders" ? "Remind me to…" : "Add new…"}">${memTab === "reminders" ? '<input type="number" id="memMin" value="30" min="1" style="width:84px" aria-label="Minutes from now">' : ""}<button class="btn primary" id="memAdd">Add</button></div>${memTab === "reminders" ? '<p class="note" style="margin:-6px 0 12px">Minutes from now</p>' : ""}<div id="memList"></div>`;
+  const add = () => {
+    const v = $("#memNew").value.trim(); if (!v) return;
+    if (memTab === "memories") Tools.remember(v); else if (memTab === "tasks") Tools.add_task(v); else if (memTab === "notes") Tools.add_note(v);
+    else toast(Tools.set_reminder(v, Number($("#memMin").value) || 30));
+    renderMemory();
+  };
+  $("#memAdd").onclick = add; $("#memNew").onkeydown = e => { if (e.key === "Enter") add(); };
+  const arr = S[memTab], L = $("#memList");
+  if (!arr.length) { L.innerHTML = '<p class="note">Nothing here yet.</p>'; return; }
+  const items = memTab === "reminders" ? [...arr].sort((a, b) => a.due - b.due) : memTab === "tasks" ? [...arr].sort((a, b) => a.done - b.done) : arr;
+  items.forEach(it => {
+    const r = document.createElement("div"); r.className = "row" + (it.done || it.fired ? " done" : "");
+    const pre = memTab === "tasks" ? `<button class="mini tog" aria-label="${it.done ? "Mark not done" : "Mark done"}">${it.done ? ICON.checked : ICON.check}</button>` : "";
+    const sub = memTab === "reminders" ? `<small>${fmtTime(it.due)}${it.fired ? ", done" : ""}</small>` : `<small>${fmtTime(it.t)}</small>`;
+    const extra = memTab === "reminders" ? `<button class="mini ics" aria-label="Add to calendar">${ICON.cal}</button>` : `<button class="mini ed" aria-label="Edit">${ICON.edit}</button>`;
+    r.innerHTML = `${pre}<div class="grow"><div class="t" style="white-space:normal">${esc(it.text)}</div>${sub}</div>${extra}<button class="mini del" aria-label="Delete">${ICON.trash}</button>`;
+    $(".tog", r) && ($(".tog", r).onclick = () => { it.done = !it.done; save.tasks(); renderMemory(); });
+    $(".ed", r) && ($(".ed", r).onclick = async () => { const v = await promptDlg("Edit", it.text); if (v && v.trim()) { it.text = v.trim(); save[memTab](); renderMemory(); } });
+    $(".ics", r) && ($(".ics", r).onclick = () => downloadICS(it));
+    $(".del", r).onclick = async () => { if (await confirmDlg("Delete this item?")) { S[memTab] = S[memTab].filter(x => x.id !== it.id); save[memTab](); renderMemory(); } };
+    L.appendChild(r);
+  });
+}
+
+function downloadICS(r) {
+  const f = d => new Date(d).toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Orrin//EN", "BEGIN:VEVENT", "UID:" + r.id + "@orrin", "DTSTAMP:" + f(Date.now()), "DTSTART:" + f(r.due), "DTEND:" + f(r.due + 900000),
+    "SUMMARY:" + r.text.replace(/[,;\n]/g, " "), "BEGIN:VALARM", "TRIGGER:PT0M", "ACTION:DISPLAY", "DESCRIPTION:Reminder", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" })); a.download = "reminder.ics"; a.click();
+  toast("Open the downloaded file to add it to your calendar.");
+}
+
+/* ---------- reminders engine (runs while the app is open) ---------- */
+function askNotifyPermission() { try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch { } }
+async function notify(text) {
+  try {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const reg = await navigator.serviceWorker?.getRegistration?.();
+    if (reg) reg.showNotification(S.settings.agentName, { body: text, icon: "icon.svg", tag: "rem-" + Date.now() });
+    else new Notification(S.settings.agentName, { body: text });
+  } catch { }
+}
+function checkReminders() {
+  const now = Date.now(); let changed = false;
+  S.reminders.forEach(r => {
+    if (!r.fired && r.due <= now) {
+      r.fired = true; changed = true;
+      toast("⏰ " + r.text, 8000); notify(r.text);
+      if (!S.settings.muted && !Voice.listening) Voice.speak("Reminder: " + r.text);
+      const c = currentConv(false); if (c) { c.messages.push({ role: "system", content: "⏰ Reminder: " + r.text, t: now }); save.convs(); if (S.mode === "text") renderMsgs(); }
+    }
+  });
+  if (changed) { save.reminders(); if ($("#memory").classList.contains("on")) renderMemory(); }
+}
+
+/* ---------- status ---------- */
+function updateStatus() {
+  S.online = navigator.onLine;
+  document.body.classList.toggle("offline", !S.online);
+  $("#statusText").textContent = S.online ? Brain.label() : (WebLLMProvider.engine ? "Offline, on-device AI" : "Offline");
+}
+
+/* ---------- settings ---------- */
+let installEvt = null;
+function renderSettings() {
+  const st = S.settings, o = st.oa, B = $("#setBody");
+  const av = id => { const a = PROVIDERS[id].available(); return a.ok ? "ready" : a.why; };
+  const voices = Voice.voices();
+  B.innerHTML = `
+  ${offlineCardHTML()}
+  <div class="h2">You and your assistant</div>
+  <div class="card">
+    <label class="f" for="sUser">Your name</label><input type="text" id="sUser" value="${esc(st.userName)}">
+    <label class="f" for="sAgent">Assistant's name</label><input type="text" id="sAgent" value="${esc(st.agentName)}">
+    <label class="f" for="sPers">Personality</label><textarea class="field" id="sPers" rows="3">${esc(st.personality)}</textarea>
+  </div>
+
+  <div class="h2">AI brain</div>
+  <div class="card">
+    <label class="f" for="sProv" style="margin-top:0">Which AI answers you</label>
+    <select id="sProv">
+      <option value="auto">Automatic: best available</option>
+      <option value="claude">Claude, inside the Claude app (${esc(av("claude"))})</option>
+      <option value="openai">Free online AI with your key (${esc(av("openai"))})</option>
+      <option value="webllm">On-device model (${esc(av("webllm"))})</option>
+      <option value="helper">Built-in helper only, no AI</option>
+    </select>
+    <p class="note">Automatic tries Claude first (works only when this app is opened inside the Claude app, using your own plan), then your free key, then the on-device model, then the basic helper.</p>
+  </div>
+
+  <div class="card">
+    <b>Free online AI</b>
+    <p>Works anywhere, including after you publish the app. Get a free key from one provider, paste it here. The key is saved only on this phone and sent only to that provider. Never paste it into chat.</p>
+    <label class="f" for="sPreset">Provider</label>
+    <select id="sPreset">${Object.entries(OA_PRESETS).map(([k, v]) => `<option value="${k}" ${o.preset === k ? "selected" : ""}>${v.label}</option>`).join("")}</select>
+    ${OA_PRESETS[o.preset]?.keyUrl ? `<p class="note">Get a free key: <a href="${OA_PRESETS[o.preset].keyUrl}" target="_blank" rel="noopener" style="color:var(--lamp)">${OA_PRESETS[o.preset].keyUrl.replace("https://", "")}</a></p>` : ""}
+    <label class="f" for="sKey">API key</label><input type="password" id="sKey" value="${esc(o.key)}" autocomplete="off" placeholder="Paste key">
+    <label class="f" for="sModel">Model</label><input type="text" id="sModel" value="${esc(o.model)}">
+    <label class="f" for="sBase">Service address</label><input type="url" id="sBase" value="${esc(o.baseUrl)}">
+    <div class="btnRow"><button class="btn" id="sTest">Test connection</button>${o.key ? '<button class="btn danger" id="sKeyDel">Remove key</button>' : ""}</div>
+    <p class="note" id="sTestOut"></p>
+  </div>
+
+  <div class="card">
+    <b>On-device model</b>
+    <p>${WebLLMProvider.supported() ? "Your browser supports this. It downloads a small model once (about 400 MB, use Wi-Fi), then answers privately and offline. It's slower and less capable than online AI, and must be loaded each time you open the app." : "This browser doesn't support WebGPU, which the on-device model needs. Recent Chrome on newer Android phones usually does."}</p>
+    <label class="f" for="sWModel">Model</label>
+    <select id="sWModel">
+      <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Small (fastest, ~400 MB)</option>
+      <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Medium (~900 MB)</option>
+      <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Larger (~1.2 GB, needs a strong phone)</option>
+    </select>
+    <div class="btnRow"><button class="btn" id="sWLoad" ${WebLLMProvider.supported() && !WebLLMProvider.engine ? "" : "disabled"}>${WebLLMProvider.engine ? "Loaded" : "Download and load"}</button></div>
+    <div class="prog" id="sWProg" style="display:none"><i></i></div><p class="note" id="sWOut"></p>
+  </div>
+
+  ${meSettingsHTML()}
+  <div class="h2">Phone voice</div>
+  <div class="card">
+    <p style="margin-top:0">Listening: ${Voice.sttSupported ? "supported. On most Android phones it uses Google's online speech service, so it needs internet." : "not supported in this browser. Use Chrome for voice input."}<br>Speaking: ${Voice.ttsSupported ? "supported, using your phone's voices." : "not supported in this browser."}</p>
+    <label class="f" for="voiceSel">Voice</label>
+    <select id="voiceSel"><option value="">Phone default</option>${voices.map(v => `<option value="${esc(v.voiceURI)}" ${v.voiceURI === st.voiceURI ? "selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select>
+    <label class="f" for="sRate">Speed: <span id="sRateV">${st.rate}</span></label><input type="range" id="sRate" min="0.6" max="1.6" step="0.1" value="${st.rate}" style="width:100%">
+    <label class="f" for="sPitch">Pitch: <span id="sPitchV">${st.pitch}</span></label><input type="range" id="sPitch" min="0.5" max="1.5" step="0.1" value="${st.pitch}" style="width:100%">
+    <label class="f" for="sLang">Speech language code (blank = phone language)</label><input type="text" id="sLang" value="${esc(st.lang)}" placeholder="${esc(navigator.language || "en-US")}">
+    <div class="toggle" style="justify-content:flex-start;margin-top:14px"><button class="sw" id="sAuto" role="switch" aria-checked="${st.autoSpeakText}" aria-label="Read replies aloud in text mode"></button><span>Read replies aloud in text mode too</span></div>
+    <div class="btnRow"><button class="btn" id="sHear">Test voice</button></div>
+  </div>
+
+  <div class="h2">Your data</div>
+  <div class="card">
+    <p style="margin-top:0">Stored ${Store.mode === "claude" ? "in the Claude app's private storage for this artifact" : Store.mode === "idb" ? "on this phone in the browser (IndexedDB)" : "only until you close the app (storage unavailable)"}. Nothing syncs between devices. Clearing browser data or uninstalling deletes it, so export a backup now and then.</p>
+    <p>${st.provider === "helper" ? "No conversation text leaves this phone." : "When an online AI answers, your message, recent conversation and saved memories are sent to that service to generate the reply. Voice input audio may be processed by Google's speech service."}</p>
+    <div class="btnRow"><button class="btn" id="sExport">Export backup</button><label class="btn" style="display:inline-grid;place-items:center">Import backup<input type="file" id="sImport" accept="application/json" hidden></label></div>
+    <div class="btnRow"><button class="btn danger" id="sWipe">Delete all my data</button></div>
+  </div>
+  ${installEvt ? '<div class="card"><b>Install the app</b><p>Add it to your home screen so it opens like a normal app and works offline.</p><div class="btnRow"><button class="btn primary" id="sInstall">Install</button></div></div>' : ""}
+  <p class="note" style="margin:16px 0 24px">Storage: ${Store.mode}. Offline cache: ${"serviceWorker" in navigator && navigator.serviceWorker.controller ? "active" : "not active (works once the app is published)"}.</p>`;
+
+  wireMeSettings(); renderOfflineCard();
+  $("#sProv").value = st.provider; $("#sWModel").value = st.webllmModel;
+  const bind = (id, fn, ev = "change") => $(id).addEventListener(ev, fn);
+  bind("#sUser", e => { st.userName = e.target.value.trim(); save.settings(); });
+  bind("#sAgent", e => { st.agentName = e.target.value.trim() || "Orrin"; save.settings(); applyName(); });
+  bind("#sPers", e => { st.personality = e.target.value.trim() || DEFAULT_SETTINGS.personality; save.settings(); });
+  bind("#sProv", e => { st.provider = e.target.value; save.settings(); updateStatus(); });
+  bind("#sPreset", e => { const p = OA_PRESETS[e.target.value]; o.preset = e.target.value; if (p.baseUrl) { o.baseUrl = p.baseUrl; o.model = p.model; } save.settings(); renderSettings(); });
+  bind("#sKey", e => { o.key = e.target.value.trim(); save.settings(); updateStatus(); });
+  bind("#sModel", e => { o.model = e.target.value.trim(); save.settings(); });
+  bind("#sBase", e => { o.baseUrl = e.target.value.trim(); save.settings(); });
+  $("#sKeyDel") && bind("#sKeyDel", async () => { if (await confirmDlg("Remove the saved API key from this phone?", "Remove")) { o.key = ""; save.settings(); renderSettings(); updateStatus(); } }, "click");
+  bind("#sTest", async () => {
+    const out = $("#sTestOut"); out.textContent = "Testing…";
+    try { const r = await OpenAIProvider.chat({ system: "Reply with exactly: OK", messages: [{ role: "user", content: "Test" }] }); out.textContent = "Connected. The service replied: " + r.slice(0, 60); out.style.color = "var(--ok)"; }
+    catch (e) { out.textContent = e.message; out.style.color = "var(--danger)"; }
+  }, "click");
+  bind("#sWModel", e => { st.webllmModel = e.target.value; save.settings(); });
+  bind("#sWLoad", async () => {
+    $("#sWLoad").disabled = true; $("#sWProg").style.display = "";
+    try {
+      await WebLLMProvider.load((p, t) => { $("#sWProg i").style.width = Math.round(p * 100) + "%"; $("#sWOut").textContent = t.slice(0, 110); });
+      $("#sWOut").textContent = "Loaded. It will answer when you're offline (or when chosen above)."; updateStatus();
+    } catch (e) { $("#sWOut").textContent = "Couldn't load the model: " + e.message; $("#sWLoad").disabled = false; }
+  }, "click");
+  bind("#voiceSel", e => { st.voiceURI = e.target.value; save.settings(); });
+  bind("#sRate", e => { st.rate = Number(e.target.value); $("#sRateV").textContent = st.rate; save.settings(); }, "input");
+  bind("#sPitch", e => { st.pitch = Number(e.target.value); $("#sPitchV").textContent = st.pitch; save.settings(); }, "input");
+  bind("#sLang", e => { st.lang = e.target.value.trim(); save.settings(); });
+  bind("#sAuto", () => { st.autoSpeakText = !st.autoSpeakText; $("#sAuto").setAttribute("aria-checked", st.autoSpeakText); save.settings(); }, "click");
+  bind("#sHear", () => { const m = st.muted; st.muted = false; Voice.speak(`Hi${st.userName ? " " + st.userName : ""}, this is how I sound.`); st.muted = m; }, "click");
+  bind("#sExport", () => {
+    const data = { app: "orrin", v: 1, exported: new Date().toISOString(), settings: { ...st, oa: { ...o, key: "" }, tts: { ...st.tts, key: "" } }, convs: S.convs, memories: S.memories, notes: S.notes, tasks: S.tasks, reminders: S.reminders };
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: "application/json" })); a.download = "orrin-backup.json"; a.click();
+    toast("Backup downloaded. API keys are not included.");
+  }, "click");
+  bind("#sImport", async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text()); if (d.app !== "orrin") throw new Error("Not an Orrin backup");
+      if (!(await confirmDlg("Replace your current data with this backup?", "Replace"))) return;
+      const key = o.key, elKey = st.tts.key; Object.assign(S, { convs: d.convs || [], memories: d.memories || [], notes: d.notes || [], tasks: d.tasks || [], reminders: d.reminders || [] });
+      S.settings = { ...DEFAULT_SETTINGS, ...d.settings, oa: { ...DEFAULT_SETTINGS.oa, ...(d.settings?.oa || {}), key }, look: { ...DEFAULT_SETTINGS.look, ...(d.settings?.look || {}) }, tts: { ...DEFAULT_SETTINGS.tts, ...(d.settings?.tts || {}), key: elKey } };
+      await Promise.all(Object.values(save).map(f => f())); applyName(); renderSettings(); toast("Backup restored.");
+    } catch (err) { toast("Import failed: " + err.message); }
+  });
+  bind("#sWipe", async () => {
+    if (!(await confirmDlg("Delete all conversations, memories, notes, tasks, reminders, settings, your photo and your API keys from this phone? This can't be undone.", "Delete everything"))) return;
+    for (const k of ["avatarPhoto", "settings", "convs", "memories", "notes", "tasks", "reminders", "currentId"]) await Store.del(k);
+    location.reload();
+  }, "click");
+  $("#sInstall") && bind("#sInstall", async () => { installEvt.prompt(); await installEvt.userChoice; installEvt = null; renderSettings(); }, "click");
+}
+function applyName() { $("#brand").textContent = S.settings.agentName; document.title = S.settings.agentName; }
+
+/* ---------- wiring ---------- */
+function wire() {
+  $("#micBtn").innerHTML = ICON.mic; $("#bigMic").innerHTML = ICON.mic; $("#sendBtn").innerHTML = ICON.send; $("#stopBtn").innerHTML = ICON.stop;
+  const muteIcon = () => { $("#muteBtn").innerHTML = S.settings.muted ? ICON.mute : ICON.vol; $("#muteBtn").setAttribute("aria-label", S.settings.muted ? "Unmute voice replies" : "Mute voice replies"); };
+  muteIcon();
+  $("#muteBtn").onclick = () => { S.settings.muted = !S.settings.muted; if (S.settings.muted) Voice.stopSpeaking(); save.settings(); muteIcon(); toast(S.settings.muted ? "Voice replies muted" : "Voice replies on"); };
+  $("#stopBtn").onclick = stopEverything;
+  $("#micBtn").onclick = () => Voice.listen(); $("#bigMic").onclick = () => Voice.listen();
+  const hf = $("#handsFree"); hf.setAttribute("aria-checked", S.settings.handsFree);
+  hf.onclick = () => { S.settings.handsFree = !S.settings.handsFree; hf.setAttribute("aria-checked", S.settings.handsFree); save.settings(); if (!S.settings.handsFree) Voice._wantListen = false; };
+  const inp = $("#input");
+  const sendTyped = () => { const v = inp.value; if (!v.trim()) return; inp.value = ""; inp.style.height = ""; sendMessage(v); };
+  $("#sendBtn").onclick = sendTyped;
+  inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !/Android|iPhone/i.test(navigator.userAgent)) { e.preventDefault(); sendTyped(); } });
+  inp.addEventListener("input", () => { inp.style.height = "auto"; inp.style.height = Math.min(inp.scrollHeight, 120) + "px"; });
+  inp.addEventListener("focus", () => document.body.classList.add("kbd"));
+  inp.addEventListener("blur", () => setTimeout(() => document.body.classList.remove("kbd"), 150));
+  $$(".seg button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $$("nav button").forEach(b => b.onclick = () => go(b.dataset.v));
+  $$("[data-go]").forEach(b => b.onclick = () => { go("talk"); setMode(b.dataset.go); });
+  $$("#memTabs button").forEach(b => b.onclick = () => { memTab = b.dataset.t; renderMemory(); });
+  $("#newChat").onclick = () => { stopEverything(); S.currentId = null; save.current(); go("talk"); setMode("text"); };
+  $("#clearHist").onclick = async () => { if (await confirmDlg("Delete all conversations? Memories, notes and tasks are kept.", "Clear all")) { S.convs = []; S.currentId = null; save.convs(); save.current(); renderHistory(); } };
+  $("#wGo").onclick = () => { S.settings.userName = $("#wName").value.trim(); S.settings.agentName = $("#wAgent").value.trim() || "Orrin"; S.settings.setupDone = true; save.settings(); applyName(); go("home"); };
+  window.addEventListener("online", updateStatus);
+  window.addEventListener("offline", () => { updateStatus(); Offline.autoStart("went-offline"); });
+  $("#offlineBar").onclick = () => go("settings");
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) Voice.stopListening(); });
+}
+
+/* one animation loop: avatar when visible, orb level otherwise */
+let lastT = performance.now();
+function loop(now) {
+  const t = now / 1000, dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (!document.hidden) { if (S.mode === "avatar" && $("#talk").classList.contains("on")) Avatar.frame(t, dt); else Voice.tick(t); }
+  requestAnimationFrame(loop);
+}
+
+/* ============ "Looks like me / sounds like me" ============ */
+
+/* ---------- Photo avatar: your own photo, animated (blink, mouth, head motion) ----------
+   Runs on a plain 2D canvas: free, offline, light on battery. The photo never leaves the phone. */
+const PhotoAvatar = {
+  ready: false, photo: null, img: null,
+  async init() {
+    if (this.ready) return;
+    this.photo = this.photo || await Store.get("avatarPhoto");
+    const wrap = $("#avatarCanvasWrap");
+    if (!this.photo) {
+      wrap.innerHTML = `<div class="empty" style="position:absolute;inset:0;display:grid;place-items:center"><div><b>Add your photo</b>Take a selfie and your assistant will use your face.<div class="btnRow" style="justify-content:center"><button class="btn primary" id="avAdd">Take or choose photo</button></div></div></div>`;
+      $("#avAdd").onclick = () => pickPhoto();
+      return;
+    }
+    this.img = await loadImg(this.photo.src);
+    this.prepare();
+    wrap.innerHTML = ""; wrap.style.background = "radial-gradient(ellipse at 50% 40%, #2E3770 0%, #1F2647 45%, #161B36 80%)";
+    this.cv = document.createElement("canvas"); wrap.appendChild(this.cv); this.ctx = this.cv.getContext("2d");
+    const resize = () => { const d = Math.min(devicePixelRatio || 1, 2); this.cv.width = wrap.clientWidth * d; this.cv.height = wrap.clientHeight * d; };
+    this.resize = resize; new ResizeObserver(resize).observe(wrap); resize();
+    this.anim = { blink: 0, blinkAt: 1.2, smooth: 0 };
+    this.ready = true;
+  },
+  /* Build a square crop around the face plus the movable jaw layer, once. */
+  prepare() {
+    const { le, re, m } = this.photo.pts, W = this.img.width, H = this.img.height;
+    const P = p => ({ x: p.x * W, y: p.y * H });
+    const L = P(le), R = P(re), M0 = P(m), D = Math.hypot(R.x - L.x, R.y - L.y);
+    const cx = (L.x + R.x) / 2, cy = ((L.y + R.y) / 2 + M0.y) / 2, size = D * 4.2;
+    const N = 640, k = N / size, ox = cx - size / 2, oy = cy - size / 2;
+    const to = p => ({ x: (p.x - ox) * k, y: (p.y - oy) * k });
+    const base = document.createElement("canvas"); base.width = base.height = N;
+    const b = base.getContext("2d"); b.fillStyle = "#1F2647"; b.fillRect(0, 0, N, N);
+    b.drawImage(this.img, ox, oy, size, size, 0, 0, N, N);
+    const d = D * k, mm = to(M0);
+    // jaw layer: everything below the lips, feathered at the sides and chin
+    const jaw = document.createElement("canvas"); jaw.width = jaw.height = N; const j = jaw.getContext("2d");
+    j.drawImage(base, 0, 0);
+    const mask = document.createElement("canvas"); mask.width = mask.height = N; const g = mask.getContext("2d");
+    g.save(); g.translate(mm.x, mm.y + d * 0.35); g.scale(1, 0.85);
+    const grd = g.createRadialGradient(0, 0, 0, 0, 0, d * 0.95); grd.addColorStop(0, "#000"); grd.addColorStop(0.62, "#000"); grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd; g.beginPath(); g.arc(0, 0, d * 0.95, 0, Math.PI * 2); g.fill(); g.restore();
+    g.globalCompositeOperation = "destination-out"; g.fillRect(0, 0, N, mm.y - 1);
+    j.globalCompositeOperation = "destination-in"; j.drawImage(mask, 0, 0);
+    this.c = { base, jaw, N, d, mouth: mm, eyes: [to(L), to(R)] };
+  },
+  frame(t, dt) {
+    if (!this.ready) return;
+    const lvl = Voice.tick(t), st = Voice.state, A = this.anim, C = this.c, x = this.ctx, w = this.cv.width, h = this.cv.height;
+    A.smooth += (lvl - A.smooth) * 0.5;
+    if (t > A.blinkAt) { A.blink = 1; A.blinkAt = t + 2 + Math.random() * 3.5; }
+    A.blink = Math.max(0, A.blink - dt * 7); const closed = Math.sin(Math.min(1, A.blink) * Math.PI);
+    // compose the face in crop space
+    if (!this.work) { this.work = document.createElement("canvas"); this.work.width = this.work.height = C.N; }
+    const wk = this.work.getContext("2d"), d = C.d, open = A.smooth * d * 0.2, mw = d * 0.24;
+    wk.drawImage(C.base, 0, 0);
+    if (open > 0.5) {
+      const g = wk.createLinearGradient(0, C.mouth.y, 0, C.mouth.y + open);
+      g.addColorStop(0, "#5a2a28"); g.addColorStop(0.35, "#2a0c0e"); g.addColorStop(1, "#3a1416");
+      wk.fillStyle = g; wk.beginPath(); wk.ellipse(C.mouth.x, C.mouth.y + open / 2, mw, open / 2 + 1, 0, 0, Math.PI * 2); wk.fill();
+      wk.drawImage(C.jaw, 0, open);
+    }
+    if (closed > 0.02) C.eyes.forEach(e => {
+      const rx = d * 0.17, ry = d * 0.1;
+      wk.save(); wk.beginPath(); wk.ellipse(e.x, e.y, rx, ry, 0, 0, Math.PI * 2); wk.clip();
+      const lidH = ry * 2 * closed;
+      wk.drawImage(C.base, e.x - rx, e.y - ry * 3.4, rx * 2, ry * 1.4, e.x - rx, e.y - ry, rx * 2, lidH);
+      wk.strokeStyle = "rgba(30,15,12,.7)"; wk.lineWidth = d * 0.018; wk.beginPath(); wk.moveTo(e.x - rx, e.y - ry + lidH); wk.quadraticCurveTo(e.x, e.y - ry + lidH + ry * 0.3, e.x + rx, e.y - ry + lidH); wk.stroke();
+      wk.restore();
+    });
+    // place on screen: round portrait with gentle head motion and a status ring
+    x.clearRect(0, 0, w, h);
+    const R = Math.min(w * 0.42, h * 0.36), cx = w / 2, cy = h * 0.44;
+    let rot = Math.sin(t * 0.37) * 0.025 + Math.sin(t * 0.9) * 0.008, dx = Math.sin(t * 0.31) * R * 0.015, dy = Math.sin(t * 1.6) * R * 0.006, sc = 1;
+    if (st === "listening") rot += 0.035;
+    if (st === "thinking") { dx += R * 0.02; rot -= 0.02; }
+    if (st === "speaking") { dy += Math.sin(t * 3.1) * R * 0.01 + A.smooth * R * 0.008; sc = 1.005 + A.smooth * 0.004; }
+    const col = { idle: "#39427A", listening: "#B4A8F5", thinking: "#A3A6C8", speaking: "#F2B65C" }[st];
+    x.save(); x.lineWidth = Math.max(3, R * 0.025); x.strokeStyle = col;
+    x.globalAlpha = st === "thinking" ? 0.4 + 0.3 * Math.sin(t * 5) : st === "speaking" ? 0.55 + A.smooth * 0.45 : 0.8;
+    x.beginPath(); x.arc(cx, cy, R * (1.06 + (st === "speaking" ? A.smooth * 0.03 : 0)), 0, Math.PI * 2); x.stroke(); x.restore();
+    x.save(); x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.clip();
+    x.translate(cx + dx, cy + dy); x.rotate(rot); x.scale(sc, sc);
+    const S2 = R * 2.25; x.drawImage(this.work, -S2 / 2, -S2 / 2, S2, S2);
+    x.restore();
+  },
+};
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+/* ---------- Photo setup: choose photo, then mark eyes and mouth ---------- */
+function pickPhoto() {
+  const f = document.createElement("input"); f.type = "file"; f.accept = "image/*"; f.setAttribute("capture", "user");
+  f.onchange = async () => {
+    const file = f.files[0]; if (!file) return;
+    const url = URL.createObjectURL(file), img = await loadImg(url);
+    const s = Math.min(1, 900 / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+    cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(url);
+    markFace(cv.toDataURL("image/jpeg", 0.86));
+  };
+  f.click();
+}
+async function markFace(src, prev) {
+  const img = await loadImg(src); let pts = prev ? { ...prev } : {};
+  // Chrome's built-in face detector, where the phone offers it, fills the points in automatically
+  if (!prev && "FaceDetector" in window) {
+    try {
+      const [face] = await new FaceDetector({ fastMode: true, maxDetectedFaces: 1 }).detect(img);
+      const lm = face?.landmarks || [], eyes = lm.filter(l => l.type === "eye").map(l => l.locations[0]).sort((a, b) => a.x - b.x), mo = lm.find(l => l.type === "mouth");
+      if (eyes.length === 2 && mo) pts = { le: { x: eyes[0].x / img.width, y: eyes[0].y / img.height }, re: { x: eyes[1].x / img.width, y: eyes[1].y / img.height }, m: { x: mo.locations[0].x / img.width, y: mo.locations[0].y / img.height } };
+    } catch { }
+  }
+  const steps = [["le", "Tap the centre of the eye on the left"], ["re", "Tap the centre of the eye on the right"], ["m", "Tap where your lips meet"]];
+  let step = pts.m ? 3 : 0;
+  const d = $("#dlg"); d.style.width = "min(560px,96vw)";
+  $("#dlgBody").innerHTML = `<p id="mkTip" style="margin:0 0 8px;font-weight:600"></p><div style="position:relative"><canvas id="mkCv" style="width:100%;border-radius:12px;touch-action:none;display:block"></canvas></div><p class="note">Use a well-lit photo facing the camera, mouth closed. It stays on this phone.</p>`;
+  const cv = $("#mkCv"), ctx = cv.getContext("2d"); cv.width = img.width; cv.height = img.height;
+  const draw = () => {
+    ctx.drawImage(img, 0, 0);
+    Object.entries(pts).forEach(([k, p]) => { ctx.fillStyle = k === "m" ? "#F2B65C" : "#B4A8F5"; ctx.strokeStyle = "#161B36"; ctx.lineWidth = img.width / 200; ctx.beginPath(); ctx.arc(p.x * img.width, p.y * img.height, img.width / 70, 0, 7); ctx.fill(); ctx.stroke(); });
+    $("#mkTip").textContent = step < 3 ? steps[step][1] : "Looks good? Save it, or tap Redo.";
+    $("#mkSave").disabled = step < 3;
+  };
+  cv.onclick = e => {
+    if (step >= 3) return; const r = cv.getBoundingClientRect();
+    pts[steps[step][0]] = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; step++; draw();
+  };
+  const row = $("#dlgBtns"); row.innerHTML = '<button class="btn ghost" id="mkCancel">Cancel</button><button class="btn" id="mkRedo">Redo</button><button class="btn primary" id="mkSave">Save</button>';
+  $("#mkCancel").onclick = () => d.close();
+  $("#mkRedo").onclick = () => { pts = {}; step = 0; draw(); };
+  $("#mkSave").onclick = async () => {
+    if (pts.le.x > pts.re.x) [pts.le, pts.re] = [pts.re, pts.le];
+    PhotoAvatar.photo = { src, pts }; await Store.set("avatarPhoto", PhotoAvatar.photo);
+    S.settings.look.kind = "photo"; save.settings(); d.close(); d.style.width = "";
+    Avatar.reset(); toast("Your face is set. Open Avatar to see it.");
+    if ($("#settings").classList.contains("on")) renderSettings();
+  };
+  d.onclose = () => { d.style.width = ""; };
+  draw(); if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+}
+
+/* ---------- Cloned voice via ElevenLabs (optional, needs their paid plan) ----------
+   Off unless you choose it. Reply text is sent to ElevenLabs to be spoken in your cloned voice.
+   Real audio also means real lip-sync: the mouth follows the actual sound level. */
+const ClonedVoice = {
+  audio: null, analyser: null, ac: null, buf: null,
+  configured() { const t = S.settings.tts; return t.engine === "eleven" && !!t.key && !!t.voiceId; },
+  async play(text) {
+    const t = S.settings.tts;
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(t.voiceId)}?output_format=mp3_44100_128`, {
+      method: "POST", headers: { "xi-api-key": t.key, "Content-Type": "application/json", Accept: "audio/mpeg" },
+      body: JSON.stringify({ text: text.slice(0, 2500), model_id: t.model || "eleven_flash_v2_5" }),
+    });
+    if (!r.ok) {
+      let msg = "Voice service error " + r.status;
+      try { const j = await r.json(); msg += ": " + String(j.detail?.message || j.detail || "").slice(0, 140); } catch { }
+      throw new Error(r.status === 401 ? "ElevenLabs rejected the key." : msg);
+    }
+    const url = URL.createObjectURL(await r.blob());
+    this.stop();
+    const a = new Audio(url); this.audio = a;
+    try {
+      this.ac = this.ac || new (window.AudioContext || window.webkitAudioContext)();
+      if (this.ac.state === "suspended") await this.ac.resume();
+      const src = this.ac.createMediaElementSource(a); this.analyser = this.ac.createAnalyser(); this.analyser.fftSize = 512;
+      src.connect(this.analyser); this.analyser.connect(this.ac.destination); this.buf = new Uint8Array(this.analyser.fftSize);
+    } catch { this.analyser = null; }
+    return new Promise((res, rej) => {
+      a.onended = () => { URL.revokeObjectURL(url); this.audio = null; this.analyser = null; res(); };
+      a.onerror = () => { this.audio = null; this.analyser = null; rej(new Error("Couldn't play the audio")); };
+      a.play().catch(rej);
+    });
+  },
+  level() {
+    if (!this.analyser) return null;
+    this.analyser.getByteTimeDomainData(this.buf); let s = 0;
+    for (const v of this.buf) { const x = (v - 128) / 128; s += x * x; }
+    return Math.min(1, Math.sqrt(s / this.buf.length) * 5);
+  },
+  stop() { if (this.audio) { this.audio.pause(); this.audio = null; } this.analyser = null; },
+};
+
+/* ---------- Settings sections for look + voice (inserted into the Settings screen) ---------- */
+function meSettingsHTML() {
+  const L = S.settings.look, T = S.settings.tts, hasPhoto = !!PhotoAvatar.photo;
+  return `
+  <div class="h2">How your assistant looks</div>
+  <div class="card">
+    <div class="seg" style="margin:0 0 12px"><button data-look="3d" class="${L.kind === "3d" ? "on" : ""}">3D character</button><button data-look="photo" class="${L.kind === "photo" ? "on" : ""}">My photo</button></div>
+    ${L.kind === "photo" ? `
+      <p style="margin-top:0">Uses a photo of you: it blinks, talks with its mouth in time with the voice, and moves gently. Front-facing, well-lit, mouth closed works best.</p>
+      ${hasPhoto ? `<img src="${PhotoAvatar.photo.src}" alt="Your avatar photo" style="width:96px;height:96px;object-fit:cover;border-radius:50%;border:2px solid var(--line)">` : ""}
+      <div class="btnRow"><button class="btn primary" id="lkPhoto">${hasPhoto ? "Change photo" : "Take or choose photo"}</button>${hasPhoto ? '<button class="btn" id="lkMark">Re-mark eyes and mouth</button><button class="btn danger" id="lkDel">Remove photo</button>' : ""}</div>`
+    : `
+      <p style="margin-top:0">Match the 3D character to you.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px">
+        ${[["skin", "Skin"], ["hair", "Hair"], ["eyes", "Eyes"], ["shirt", "Top"]].map(([k, l]) => `<label class="f" style="display:flex;align-items:center;gap:10px">${l}<input type="color" data-col="${k}" value="${L[k]}" style="width:52px;height:40px;border:0;background:none;padding:0"></label>`).join("")}
+      </div>
+      <div class="toggle" style="justify-content:flex-start;margin-top:12px"><button class="sw" id="lkGlasses" role="switch" aria-checked="${L.glasses}" aria-label="Glasses"></button><span>Glasses</span></div>
+      <div class="toggle" style="justify-content:flex-start"><button class="sw" id="lkBeard" role="switch" aria-checked="${L.beard}" aria-label="Beard"></button><span>Beard</span></div>
+      <div class="toggle" style="justify-content:flex-start"><button class="sw" id="lkLong" role="switch" aria-checked="${L.longHair}" aria-label="Long hair"></button><span>Long hair</span></div>`}
+  </div>
+
+  <div class="h2">How your assistant sounds</div>
+  <div class="card">
+    <select id="ttsEng" aria-label="Voice engine">
+      <option value="device" ${T.engine === "device" ? "selected" : ""}>Phone voices (free, below)</option>
+      <option value="eleven" ${T.engine === "eleven" ? "selected" : ""}>My cloned voice, ElevenLabs (paid plan)</option>
+    </select>
+    ${T.engine === "eleven" ? `
+      <p>Speaks every reply in a copy of your voice. Cloning needs an ElevenLabs paid plan (Starter, about $5–6/month), and replies use your monthly character allowance. Reply text is sent to ElevenLabs.</p>
+      <p>On your phone: sign up at elevenlabs.io, go to Voices, add a voice using Instant Voice Clone, and record about a minute of yourself talking. Then create an API key in your ElevenLabs profile settings, and copy the voice ID from the voice's menu.</p>
+      <label class="f" for="elKey">ElevenLabs API key</label><input type="password" id="elKey" value="${esc(T.key)}" autocomplete="off" placeholder="Paste key">
+      <label class="f" for="elVoice">Voice ID</label><input type="text" id="elVoice" value="${esc(T.voiceId)}" placeholder="e.g. 21m00Tcm4TlvDq8ikWAM">
+      <div class="btnRow"><button class="btn" id="elTest">Test my voice</button></div><p class="note" id="elOut">If the voice service fails or you're offline, the phone voice is used instead.</p>` : ""}
+  </div>`;
+}
+function wireMeSettings() {
+  const L = S.settings.look, T = S.settings.tts;
+  $$("[data-look]").forEach(b => b.onclick = () => { L.kind = b.dataset.look; save.settings(); Avatar.reset(); renderSettings(); });
+  $("#lkPhoto") && ($("#lkPhoto").onclick = pickPhoto);
+  $("#lkMark") && ($("#lkMark").onclick = () => markFace(PhotoAvatar.photo.src));
+  $("#lkDel") && ($("#lkDel").onclick = async () => { if (await confirmDlg("Remove your photo from this phone?", "Remove")) { await Store.del("avatarPhoto"); PhotoAvatar.photo = null; Avatar.reset(); renderSettings(); } });
+  $$("[data-col]").forEach(i => i.onchange = () => { L[i.dataset.col] = i.value; save.settings(); Avatar.reset(); });
+  [["#lkGlasses", "glasses"], ["#lkBeard", "beard"], ["#lkLong", "longHair"]].forEach(([id, k]) => $(id) && ($(id).onclick = () => { L[k] = !L[k]; $(id).setAttribute("aria-checked", L[k]); save.settings(); Avatar.reset(); }));
+  $("#ttsEng").onchange = e => { T.engine = e.target.value; save.settings(); renderSettings(); };
+  $("#elKey") && ($("#elKey").onchange = e => { T.key = e.target.value.trim(); save.settings(); });
+  $("#elVoice") && ($("#elVoice").onchange = e => { T.voiceId = e.target.value.trim(); save.settings(); });
+  $("#elTest") && ($("#elTest").onclick = async () => {
+    const o = $("#elOut"); o.textContent = "Generating…"; o.style.color = "";
+    try { await ClonedVoice.play(`Hi${S.settings.userName ? " " + S.settings.userName : ""}, this is your voice.`); o.textContent = "Played. Your replies will use this voice."; o.style.color = "var(--ok)"; }
+    catch (e) { o.textContent = e.message; o.style.color = "var(--danger)"; }
+  });
+}
+/* ============ Offline readiness ============
+   Checks what will work without internet and prepares as much as possible in one tap. */
+const Offline = {
+  published() { return "serviceWorker" in navigator && !!navigator.serviceWorker.controller; },
+  speechLang() { return S.settings.lang || navigator.language || "en-US"; },
+  /* The on-device speech check is experimental and can hang in some browsers, so it only runs when
+     the person taps "Get ready", with a time limit, and the answer is remembered. */
+  savedSpeech() { if (!SR) return "none"; if (typeof SR.available !== "function") return "nolocal"; return S.settings.localSpeech || "unchecked"; },
+  async speechStatus() {
+    if (!SR) return "none";
+    if (typeof SR.available !== "function") return "nolocal";
+    const limit = new Promise(r => setTimeout(() => r("nolocal"), 3000));
+    await this.guard(true);
+    let s; try { s = await Promise.race([SR.available({ langs: [this.speechLang()], processLocally: true }), limit]); } catch { s = "nolocal"; }
+    await this.guard(false);
+    S.settings.localSpeech = s; save.settings(); Voice.localOK = s === "available"; return s;
+  },
+  /* Crash guard: mark before touching the experimental feature, clear after. If the app froze or
+     crashed in between, the mark is still there next launch and the feature is switched off. */
+  async guard(on) { if (on) await Store.set("speechProbe", Date.now()); else await Store.del("speechProbe"); },
+  async checkCrashGuard() {
+    let mark = null; try { mark = await Store.get("speechProbe"); } catch { }
+    if (!mark) return;
+    await Store.del("speechProbe");
+    S.settings.localSpeechOn = false; S.settings.localSpeech = "nolocal"; save.settings(); Voice.localOK = false;
+    toast("Offline voice input stopped the app last time, so it's switched off. Typing works offline.", 8000);
+  },
+  localVoices() { return Voice.voices().filter(v => v.localService); },
+  async check() {
+    const r = {};
+    r.app = this.published();
+    try { r.avatar = !!(window.THREE || (await caches.match(THREE_URL))); } catch { r.avatar = !!window.THREE; }
+    r.photo = !!PhotoAvatar.photo;
+    r.ai = WebLLMProvider.engine ? "loaded" : S.settings.webllmDownloaded ? "downloaded" : WebLLMProvider.supported() ? "ready-to-download" : "unsupported";
+    r.speech = this.savedSpeech(); r.speechOn = S.settings.localSpeechOn;
+    r.voice = Voice.ttsSupported ? this.localVoices().length : -1;
+    try { r.persisted = await navigator.storage?.persisted?.(); } catch { r.persisted = false; }
+    try { const e = await navigator.storage?.estimate?.(); r.usedMB = e ? Math.round(e.usage / 1e6) : null; } catch { }
+    return r;
+  },
+  async persist() { try { return await navigator.storage?.persist?.(); } catch { return false; } },
+  async cacheAvatar() {
+    try { const c = await caches.open("orrin-runtime"); if (!(await caches.match(THREE_URL))) await c.add(THREE_URL); return true; } catch { return false; }
+  },
+  async installSpeech() {
+    const limit = new Promise(r => setTimeout(() => r(false), 120000));
+    await this.guard(true);
+    let ok = false; try { ok = await Promise.race([SR.install({ langs: [this.speechLang()], processLocally: true }), limit]); } catch { }
+    await this.guard(false); if (ok) await this.speechStatus(); return ok;
+  },
+  /* Start the on-device AI automatically: when the app opens offline, or when the connection drops */
+  autoStart(reason) {
+    const st = S.settings;
+    if (!st.webllmDownloaded || WebLLMProvider.engine || WebLLMProvider.loading || !WebLLMProvider.supported()) return;
+    if (st.webllmAuto === "never") return;
+    if (st.webllmAuto === "offline" && navigator.onLine) return;
+    $("#statusText").textContent = "Starting offline AI…";
+    WebLLMProvider.load().then(() => { updateStatus(); if (reason) toast("Offline AI is ready."); })
+      .catch(e => { updateStatus(); console.warn("offline AI failed to start", e); });
+  },
+};
+
+function offlineCardHTML() {
+  return `<div class="h2">Offline readiness</div><div class="card" id="offCard"><p style="margin-top:0">Checking…</p></div>`;
+}
+async function renderOfflineCard() {
+  const box = $("#offCard"); if (!box) return;
+  const r = await Offline.check(), ok = '<span style="color:var(--ok)">✓</span>', no = '<span style="color:var(--danger)">✕</span>', mid = '<span style="color:var(--lamp)">•</span>';
+  const row = (state, title, detail) => `<div style="display:flex;gap:10px;margin:10px 0"><div style="width:18px;flex:none">${state}</div><div><div>${title}</div>${detail ? `<div class="note" style="margin:2px 0 0">${detail}</div>` : ""}</div></div>`;
+  const speechTxt = { available: [ok, "Voice input works offline", "Using your phone's on-device speech recognition."],
+    downloadable: [mid, "Voice input offline: needs a language pack", "The Get ready button downloads it."],
+    downloading: [mid, "Voice input offline: downloading language pack", ""],
+    unchecked: [mid, "Voice input offline: not checked yet", "Tap Get ready for offline to check and set it up."],
+    unavailable: [no, "Voice input needs internet", "Your phone has no offline pack for this language. Type when offline."],
+    nolocal: [no, "Voice input needs internet", "This version of Chrome can't recognise speech offline. Type when offline; updating Chrome may add it."],
+    none: [no, "Voice input not supported in this browser", "Use Chrome. Typing always works."] }[r.speech] || [no, "Voice input needs internet", ""];
+  const aiTxt = { loaded: [ok, "AI replies work offline", "The on-device model is loaded."],
+    downloaded: [ok, "AI replies work offline", "Model is saved on this phone and starts by itself when you go offline (takes a little while)."],
+    "ready-to-download": [mid, "AI replies offline: model not downloaded", "About 400 MB, once. Use Wi-Fi. Without it you still get the basic helper offline."],
+    unsupported: [no, "AI replies need internet", "This phone's browser lacks WebGPU, which offline AI needs. Offline, the basic helper still handles tasks, notes, memories and reminders."] }[r.ai];
+  box.innerHTML = `
+    ${row(r.app ? ok : no, r.app ? "App is saved for offline" : "App isn't saved for offline yet", r.app ? "Opens from your home screen with no internet." : "Publish it (see README) and open it once in Chrome. The preview inside the Claude app always needs internet.")}
+    ${row(ok, "Chats, memories, tasks, notes, reminders", "Stored on this phone, always available.")}
+    ${row(aiTxt[0], aiTxt[1], aiTxt[2])}
+    ${r.speech === "none" || r.speech === "nolocal" ? row(speechTxt[0], speechTxt[1], speechTxt[2]) : `
+      ${row(r.speechOn ? speechTxt[0] : no, r.speechOn ? speechTxt[1] : "Voice input needs internet", r.speechOn ? speechTxt[2] : "Your Chrome has an experimental offline option. Try it with the switch below.")}
+      <div class="toggle" style="justify-content:flex-start;margin:-2px 0 6px 28px"><button class="sw" id="offSpeech" role="switch" aria-checked="${r.speechOn}" aria-label="Offline voice input, experimental"></button><span>Offline voice input (experimental). If the app freezes, reopen it and this turns itself off.</span></div>`}
+    ${row(r.voice > 0 ? ok : r.voice === 0 ? mid : no, r.voice > 0 ? "Spoken replies work offline" : "Spoken replies may need internet", r.voice > 0 ? `${r.voice} offline voice${r.voice > 1 ? "s" : ""} on this phone.` : "In Android Settings, search \"Text-to-speech\", open Google's speech engine and install voice data for your language.")}
+    ${row(S.settings.look.kind === "photo" ? (r.photo ? ok : mid) : (r.avatar ? ok : mid), "Avatar works offline", S.settings.look.kind === "photo" ? (r.photo ? "Your photo face is saved on this phone." : "Add your photo in the look settings.") : (r.avatar ? "3D character is saved." : "The Get ready button saves it."))}
+    ${row(r.persisted ? ok : mid, r.persisted ? "Your data is protected from automatic clean-up" : "Your data could be cleared if the phone runs low on space", r.persisted ? "" : "The Get ready button asks Chrome to keep it. Installing the app helps.")}
+    <div class="btnRow"><button class="btn primary" id="offPrep">Get ready for offline</button></div>
+    ${S.settings.webllmDownloaded ? `<label class="f" for="offAuto">Start offline AI</label><select id="offAuto"><option value="offline">Automatically when I'm offline</option><option value="always">Every time the app opens</option><option value="never">Only when I tap Download and load</option></select>` : ""}
+    <p class="note" id="offOut">${r.usedMB != null ? `Using about ${r.usedMB} MB on this phone.` : ""}</p>`;
+  $("#offAuto") && ($("#offAuto").value = S.settings.webllmAuto, $("#offAuto").onchange = e => { S.settings.webllmAuto = e.target.value; save.settings(); });
+  $("#offSpeech") && ($("#offSpeech").onclick = async () => {
+    const out = $("#offOut");
+    if (S.settings.localSpeechOn) { S.settings.localSpeechOn = false; Voice.localOK = false; save.settings(); return renderOfflineCard(); }
+    S.settings.localSpeechOn = true; save.settings();
+    out.textContent = "Checking offline voice input…";
+    let sp = await Offline.speechStatus();
+    if (sp === "downloadable") { out.textContent = "Downloading the offline speech pack…"; await Offline.installSpeech(); sp = Offline.savedSpeech(); }
+    if (sp !== "available") { S.settings.localSpeechOn = false; save.settings(); }
+    renderOfflineCard();
+  });
+  $("#offPrep").onclick = async () => {
+    const out = $("#offOut"), b = $("#offPrep"); b.disabled = true;
+    out.textContent = "Protecting your data…"; await Offline.persist();
+    out.textContent = "Saving the 3D character…"; await Offline.cacheAvatar();
+
+    if (r.ai === "ready-to-download") {
+      const go = await confirmDlg("Download the offline AI model now? It's about 400 MB, so use Wi-Fi. It's free and stays on this phone.", "Download");
+      if (go) {
+        try { await WebLLMProvider.load((p, t) => { out.textContent = `Downloading offline AI: ${Math.round(p * 100)}%`; }); }
+        catch (e) { out.textContent = "Offline AI download failed: " + e.message; }
+      }
+    }
+    b.disabled = false; renderOfflineCard();
+  };
+}
+/* ============ start ============ */
+async function boot() {
+  await loadAll(); wire(); applyName(); updateStatus();
+  go(S.settings.setupDone ? "home" : "welcome");
+  setInterval(checkReminders, 15000); checkReminders();
+  requestAnimationFrame(loop);
+  Offline.persist();
+  await Offline.checkCrashGuard();
+  Voice.localOK = S.settings.localSpeechOn && S.settings.localSpeech === "available";
+  Offline.autoStart();
+  if ("serviceWorker" in navigator && /^https:|^http:\/\/localhost/.test(location.href)) {
+    navigator.serviceWorker.register("sw.js").catch(() => { /* not available in previews */ });
+  }
+}
+boot();
+
+</script>
+</body>
+</html>
